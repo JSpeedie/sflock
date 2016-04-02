@@ -110,7 +110,7 @@ main(int argc, char **argv) {
 
     // defaults
     char* passchar = "*";
-    char* fontname = "-*-dejavu sans-bold-r-*-*-*-420-100-100-*-*-iso8859-1";
+    char* fontname = "-*-helvetica-bold-r-normal-*-*-120-*-*-*-*-iso8859-1";
     char* username = ""; 
     // int showline = 1;
     int xshift = 0;
@@ -137,65 +137,35 @@ main(int argc, char **argv) {
 		{ "help",		no_argument,		NULL,		'h' },
 		{ "version",		no_argument,		NULL,		'v' },
 		{ "x-coord",		required_argument,	NULL,		'x' },
+		{ "y-coord",		required_argument,	NULL,		'y' },
 		{ "x-shift",		required_argument,	NULL,		's' },
 		{ "y-shift",		required_argument,	NULL,		'a' },
 		{ 0, 0, 0, 0 }
 	};
 
 	if (printhelp) printHelp(); 
-	printf("BitmapOpenFailed: %d\n", BitmapOpenFailed);
-	printf("BitmapFileInvalid: %d\n", BitmapFileInvalid);
-	printf("BitmapNoMemory: %d\n", BitmapNoMemory);
-	printf("BitmapSuccess: %d\n", BitmapSuccess);
+	printf("BitmapOpenFailed: %d ", BitmapOpenFailed);
+	printf("BitmapFileInvalid: %d ", BitmapFileInvalid);
+	printf("BitmapNoMemory: %d ", BitmapNoMemory);
+	printf("BitmapSuccess: %d ", BitmapSuccess);
 
 	while ((opt = getopt_long(argc, argv, "c:f:nlpohvx:s:a:", opttable, NULL)) != -1) { 
 		switch (opt) {
-			case 'c': passchar = optarg; break;
+			case 'c': passchar = optarg; printf("pass changed to %s", passchar); break;
 			case 'f': fontname = optarg; break;
-			// case 'i': printHelp(); break;
 			case 'n': showname = 0; break;
 			case 'l': showline = 0; break;
 			case 'p': showpassword = 0; break;
+			case 'o': showline = 0; showname = 0; break;
+			case 'h': printHelp(); break;
 			case 'v': die("sflock-"VERSION", © 2015 Ben Ruijl, JSpeedie\n"); break;
 			case 'x': 
 				usex = 1;
 				newx = atoi(optarg);
 				break;
+			// case 's' 'a' 'y' still need to be done
 		}
 	}
-
-	// for (int i = 0; i < argc; i++) {
-		// else if (!strcmp(argv[i], "-h")) 
-			// showline = 0;
-		// else if (!strcmp(argv[i], "--x-shift"))
-			// xshift = atoi(argv[i + 1]);
-		// else if (!strcmp(argv[i], "--hide-name"))
-			// showname = 0;
-		// else if (!strcmp(argv[i], "--hide-line"))
-			// showline = 0;
-		// else if (!strcmp(argv[i], "--password-only")) {
-			// showname = 0;
-			// showline = 0;
-		// }
-		// else if (!strcmp(argv[i], "?"))
-			// die("usage: sflock [-v] [-c passchars] [-f fontname] [--x-shift horizontal shift] [--hide-name] [--hide-line] [--password-only]\n");
-		// else if (!strcmp(argv[i], "help"))
-			/* die("sflock:" \
-					"\n\t[-v] Prints version info." \
-					"\n\t[-c passchars] Takes a string parameter. The provided string/char will be used " \
-						"to represent one character entry in the password field. For example, when " \
-						"left unchanged, each character you've entered will be represented by \"*\"." \
-					"\n\t[-f fontname] Takes one string parameter that represents the font you want to " \
-						"use. Uses X Logical Font Description. I'll try to fix this at a later date " \
-						"cause XLFD is a pain." \
-					"\n\t[--x-shift horizontal shift] Takes one int parameter. Shifts the username, line " \
-						"and password field x pixels to the right (from the center of your display(s)." \
-					"\n\t[--hide-name] sflock will not show your username at the lock " \
-						"screen. Good if your username is stupid ;)" \
-					"\n\t[--hide-line] sflock will not show the line between the " \
-						"username field and the password field." \
-					"\n\t[--password-only] Equivalent to --hide-line --hide-name.\n");
-		} */
 
     // fill with password characters
     for (int i = 0; i < sizeof passdisp; i+= strlen(passchar)) 
@@ -354,7 +324,7 @@ main(int argc, char **argv) {
 			int xhret = 0;
 			int yhret = 0;
 			// Need to test the drawable part. currently w
-			int retval = XReadBitmapFile(dpy, w, "/home/me/dotaIsSoSick.xbm", &wret, &hret, &p, &xhret, &yhret);
+			int retval = XReadBitmapFile(dpy, w, "/home/me/test.xbm", &wret, &hret, &p, &xhret, &yhret);
 			printf("fjdklsajf: %d\n", retval);
 			// Use the pixmap returned above.
 			XSetWindowBackgroundPixmap(dpy, w, p); 
