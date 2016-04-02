@@ -18,6 +18,7 @@
 #include <fcntl.h> 
 #include <errno.h> 
 #include <termios.h>
+#include <X11/xpm.h>
 #include <X11/keysym.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
@@ -273,7 +274,7 @@ main(int argc, char **argv) {
 
 		if (showname) {
 			// Draw username on the lock screen
-			 XDrawString(dpy, w, gc, ((width - XTextWidth(font, username, strlen(username))) / 2) + xshift, y - ascent - 20, username, strlen(username));
+			XDrawString(dpy, w, gc, ((width - XTextWidth(font, username, strlen(username))) / 2) + xshift, y - ascent - 20, username, strlen(username));
 		}
 
 		if (showline) {
@@ -315,20 +316,25 @@ main(int argc, char **argv) {
 #else
                     running = strcmp(crypt(passwd, pws), pws);
 #endif
-                    if (running != 0)
-                        // change background on wrong password
-                        XSetWindowBackground(dpy, w, red.pixel);
-			unsigned int wret = 1920;
-			unsigned int hret = 1080;
-			Pixmap p; 
-			int xhret = 0;
-			int yhret = 0;
-			// Need to test the drawable part. currently w
-			int retval = XReadBitmapFile(dpy, w, "/home/me/test.xbm", &wret, &hret, &p, &xhret, &yhret);
-			printf("fjdklsajf: %d\n", retval);
-			// Use the pixmap returned above.
-			XSetWindowBackgroundPixmap(dpy, w, p); 
-			XFlush(dpy);
+			if (running != 0) {
+                        	// change background on wrong password
+                        	XSetWindowBackground(dpy, w, red.pixel);
+				unsigned int wret = 1920;
+				unsigned int hret = 1080;
+				Pixmap p; 
+				int xhret = 0;
+				int yhret = 0;
+				// Need to test the drawable part. currently w
+				printf("\nXpmOpenFailed: %d\n", XpmOpenFailed);
+				printf("XpmFileInvalid: %d\n", XpmFileInvalid);
+				printf("XpmNoMemory: %d\n", XpmNoMemory);
+				int retval = XpmReadFileToPixmap (dpy, w, "/home/me/test.xpm", &p, NULL, NULL);
+				// int retval = XReadBitmapFile(dpy, w, "/home/me/test.xbm", &wret, &hret, &p, &xhret, &yhret);
+				printf("\nfjdklsajf: %d\n", retval);
+				// Use the pixmap returned above.
+				XSetWindowBackgroundPixmap(dpy, w, p); 
+				XFlush(dpy);
+			}
                     len = 0;
                     break;
                 case XK_Escape:
