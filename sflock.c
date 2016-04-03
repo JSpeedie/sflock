@@ -67,13 +67,20 @@ get_password() { /* only run as root */
 }
 #endif
 
-void printHelp() { 
+void print_help() { 
 	die("sflock" \
 		"\n\tusage: [ -c | -f | -n | -l | -p | -o | -h | -v | -x | -s | -a ]" \
 		"\n\t[-v] Prints version info." \
 		"\n\t[-c passchars] Takes a string parameter. The provided string/char will be used " \
-		"to represent one character entry in the password field. For example, when " \
-		"left unchanged, each character you've entered will be represented by \"*\"." \
+		"to represent the characters in the password field. For example, when " \
+		"left unchanged, each character you've entered will be represented by '*'. " \
+		"If you enter 'sflock -c this', the first first character will be shown as 't'. " \
+		"The second character you enter will be shown as 'h' and so on and so forth. " \
+		"The characters ('this') will be repeated once they run out (at 12 characters "
+		"entered, the password field will show 'thisthisth' (provided you haven't hidden the " \
+		"password field). Best used for making it look like your password isn't hidden by " \
+		"entering something like 'sflock -c password1234' or 'sflock -c jfkldhfuhwojnfjkdnja' " \
+		"to confuse anyone looking over your shoulder."
 		"\n\t[-f fontname] Takes one string parameter that represents the font you want to " \
 		"use. Uses X Logical Font Description. I'll try to fix this at a later date " \
 		"cause XLFD is a pain." \
@@ -158,14 +165,14 @@ main(int argc, char **argv) {
 		{ 0, 0, 0, 0 }
 	};
 
-	// printf("BitmapOpenFailed: %d ", BitmapOpenFailed);
-	// printf("BitmapFileInvalid: %d ", BitmapFileInvalid);
-	// printf("BitmapNoMemory: %d ", BitmapNoMemory);
-	// printf("BitmapSuccess: %d ", BitmapSuccess);
+	// printf("BitmapOpenFailed: %d\n", BitmapOpenFailed);
+	// printf("BitmapFileInvalid: %d\n", BitmapFileInvalid);
+	// printf("BitmapNoMemory: %d\n", BitmapNoMemory);
+	// printf("BitmapSuccess: %d\n", BitmapSuccess);
 
 	while ((opt = getopt_long(argc, argv, "c:f:nlpohvx:y:X:Y:i:e:", opt_table, NULL)) != -1) { 
 		switch (opt) {
-			case 'c': passchar = optarg; printf("pass changed to %s", passchar); break;
+			case 'c': passchar = optarg; printf("pass changed to %s\n", passchar); break;
 			case 'f': fontname = optarg; break;
 			// show/hide element options
 			case 'n': show_name = 0; break;
@@ -173,7 +180,7 @@ main(int argc, char **argv) {
 			case 'p': show_password = 0; break;
 			case 'o': show_line = 0; show_name = 0; break;
 			// help and info options
-			case 'h': printHelp(); break;
+			case 'h': print_help(); break;
 			case 'v': die("sflock-"VERSION", © 2015 Ben Ruijl, JSpeedie\n"); break;
 			// location options
 			case 'x': 
@@ -256,6 +263,7 @@ main(int argc, char **argv) {
 		int retval = XpmReadFileToPixmap (dpy, w, b_image_loc, &bg, NULL, NULL);
 		// If reading the pixmap was successful
 		if (retval == 0) XSetWindowBackgroundPixmap(dpy, w, bg); 
+		else printf("warning: could not read provided background image\n");
 	}
     XSetFont(dpy, gc, font->fid);
     XSetForeground(dpy, gc, XWhitePixel(dpy, screen));
@@ -352,7 +360,7 @@ main(int argc, char **argv) {
 				// to do: change these so they aren't static
 				Pixmap p; 
 
-				// printf("\nXpmOpenFailed: %d\n", XpmOpenFailed);
+				// printf("XpmOpenFailed: %d\n", XpmOpenFailed);
 				// printf("XpmFileInvalid: %d\n", XpmFileInvalid);
 				// printf("XpmNoMemory: %d\n", XpmNoMemory); 
 
@@ -362,6 +370,7 @@ main(int argc, char **argv) {
 					int retval = XpmReadFileToPixmap (dpy, w, e_b_image_loc, &p, NULL, NULL);
 					// Set the background the user specified image.
 					if (retval == 0) XSetWindowBackgroundPixmap(dpy, w, p); 
+					else printf("warning: could not read provided error background image\n");
 				}
 				else {
 					// change background on wrong password
