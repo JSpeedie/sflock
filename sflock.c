@@ -113,58 +113,83 @@ main(int argc, char **argv) {
     char* passchar = "*";
     char* fontname = "-*-helvetica-bold-r-normal-*-*-120-*-*-*-*-iso8859-1";
     char* username = ""; 
-    // int showline = 1;
+    // int show_line = 1;
     int xshift = 0;
-	int showname = 1;
-	int showline = 1;
-	int showpassword = 1;
-	int usex = 0; 
-	int newx = 0;
+	// show/hide element variables
+	int show_name = 1;
+	int show_line = 1;
+	int show_password = 1;
+	// location variables
+	int use_x = 0; 
+	int new_x = 0;
+	int use_y = 0; 
+	int new_y = 0;
+	// image variables
+	int use_b_image = 0;
+	char* b_image_loc = "";
+	int use_e_b_image = 0;
+	char* e_b_image_loc = "";
 
 	int opt;
-	int printhelp = 0;
 	/* still to do:
-		fix h
 		x-coord and x-shift should be for individual part? (password field, line and name?)
 		y-shift isn't implemented either in the while loop or at all
+		a lot of these need proper implementation.
 	*/
-	struct option opttable[] = {
+	struct option opt_table[] = {
 		{ "password-char",	required_argument,	NULL,		'c' },
 		{ "font-name",		required_argument,	NULL,		'f' },
+		// show/hide element options
 		{ "hide-name",		no_argument,		NULL,		'n' },
 		{ "hide-line",		no_argument,		NULL,		'l' },
 		{ "hide-password",	no_argument,		NULL,		'p' },
 		{ "password-only",	no_argument,		NULL,		'o' },
+		// help and info options
 		{ "help",		no_argument,		NULL,		'h' },
 		{ "version",		no_argument,		NULL,		'v' },
+		// location options
 		{ "x-coord",		required_argument,	NULL,		'x' },
 		{ "y-coord",		required_argument,	NULL,		'y' },
-		{ "x-shift",		required_argument,	NULL,		's' },
-		{ "y-shift",		required_argument,	NULL,		'a' },
+		{ "x-shift",		required_argument,	NULL,		'X' },
+		{ "y-shift",		required_argument,	NULL,		'Y' },
+		// image options
+		{ "background-image",	required_argument,	NULL,		'i' },
+		{ "incorrect-image",	required_argument,	NULL,		'e' },
 		{ 0, 0, 0, 0 }
 	};
 
-	if (printhelp) printHelp(); 
-	printf("BitmapOpenFailed: %d ", BitmapOpenFailed);
-	printf("BitmapFileInvalid: %d ", BitmapFileInvalid);
-	printf("BitmapNoMemory: %d ", BitmapNoMemory);
-	printf("BitmapSuccess: %d ", BitmapSuccess);
+	// printf("BitmapOpenFailed: %d ", BitmapOpenFailed);
+	// printf("BitmapFileInvalid: %d ", BitmapFileInvalid);
+	// printf("BitmapNoMemory: %d ", BitmapNoMemory);
+	// printf("BitmapSuccess: %d ", BitmapSuccess);
 
-	while ((opt = getopt_long(argc, argv, "c:f:nlpohvx:s:a:", opttable, NULL)) != -1) { 
+	while ((opt = getopt_long(argc, argv, "c:f:nlpohvx:y:X:Y:i:e:", opt_table, NULL)) != -1) { 
 		switch (opt) {
 			case 'c': passchar = optarg; printf("pass changed to %s", passchar); break;
 			case 'f': fontname = optarg; break;
-			case 'n': showname = 0; break;
-			case 'l': showline = 0; break;
-			case 'p': showpassword = 0; break;
-			case 'o': showline = 0; showname = 0; break;
+			// show/hide element options
+			case 'n': show_name = 0; break;
+			case 'l': show_line = 0; break;
+			case 'p': show_password = 0; break;
+			case 'o': show_line = 0; show_name = 0; break;
+			// help and info options
 			case 'h': printHelp(); break;
 			case 'v': die("sflock-"VERSION", © 2015 Ben Ruijl, JSpeedie\n"); break;
+			// location options
 			case 'x': 
-				usex = 1;
-				newx = atoi(optarg);
+				use_x = 1;
+				new_x = atoi(optarg);
 				break;
 			// case 's' 'a' 'y' still need to be done
+			// image options
+			case 'i': 
+				use_b_image = 1;
+				b_image_loc = optarg;
+				break;
+			case 'e': 
+				use_e_b_image = 1;
+				e_b_image_loc = optarg;
+				break;
 		}
 	}
 
@@ -225,6 +250,13 @@ main(int argc, char **argv) {
     }
 
     gc = XCreateGC(dpy, w, (unsigned long)0, &values);
+	if (use_b_image) {
+		Pixmap bg; 
+		// Read user specified .xpm file as a Pixmap to 'p'
+		int retval = XpmReadFileToPixmap (dpy, w, b_image_loc, &bg, NULL, NULL);
+		// If reading the pixmap was successful
+		if (retval == 0) XSetWindowBackgroundPixmap(dpy, w, bg); 
+	}
     XSetFont(dpy, gc, font->fid);
     XSetForeground(dpy, gc, XWhitePixel(dpy, screen));
 
@@ -263,8 +295,8 @@ main(int argc, char **argv) {
 
             XClearWindow(dpy, w);
             XTextExtents (font, passdisp, len, &dir, &ascent, &descent, &overall);
-		if (usex) {
-			x = newx;
+		if (use_x) {
+			x = new_x;
 		}
 		else {
 			x = (width - overall.width) / 2;
@@ -272,16 +304,16 @@ main(int argc, char **argv) {
 		
             y = (height + ascent - descent) / 2;
 
-		if (showname) {
+		if (show_name) {
 			// Draw username on the lock screen
 			XDrawString(dpy, w, gc, ((width - XTextWidth(font, username, strlen(username))) / 2) + xshift, y - ascent - 20, username, strlen(username));
 		}
 
-		if (showline) {
+		if (show_line) {
 			XDrawLine(dpy, w, gc, (width * 3 / 8) + xshift, y - ascent - 10, (width * 5 / 8) + xshift, y - ascent - 10);
 		}
 
-		if (showpassword) {
+		if (show_password) {
 			// Draw password entry on the lock screen
 			XDrawString(dpy, w, gc, (x + xshift), y, passdisp, len);
 		}
@@ -317,22 +349,28 @@ main(int argc, char **argv) {
                     running = strcmp(crypt(passwd, pws), pws);
 #endif
 			if (running != 0) {
-                        	// change background on wrong password
-                        	XSetWindowBackground(dpy, w, red.pixel);
-				unsigned int wret = 1920;
-				unsigned int hret = 1080;
+				// to do: change these so they aren't static
 				Pixmap p; 
-				int xhret = 0;
-				int yhret = 0;
-				// Need to test the drawable part. currently w
-				printf("\nXpmOpenFailed: %d\n", XpmOpenFailed);
-				printf("XpmFileInvalid: %d\n", XpmFileInvalid);
-				printf("XpmNoMemory: %d\n", XpmNoMemory);
-				int retval = XpmReadFileToPixmap (dpy, w, "/home/me/test.xpm", &p, NULL, NULL);
-				// int retval = XReadBitmapFile(dpy, w, "/home/me/test.xbm", &wret, &hret, &p, &xhret, &yhret);
-				printf("\nfjdklsajf: %d\n", retval);
-				// Use the pixmap returned above.
-				XSetWindowBackgroundPixmap(dpy, w, p); 
+
+				// printf("\nXpmOpenFailed: %d\n", XpmOpenFailed);
+				// printf("XpmFileInvalid: %d\n", XpmFileInvalid);
+				// printf("XpmNoMemory: %d\n", XpmNoMemory); 
+
+				// if the user specified an error background image
+				if (use_e_b_image) {
+					// Read user specified .xpm file as a Pixmap to 'p'
+					int retval = XpmReadFileToPixmap (dpy, w, e_b_image_loc, &p, NULL, NULL);
+					// Set the background the user specified image.
+					if (retval == 0) XSetWindowBackgroundPixmap(dpy, w, p); 
+				}
+				else {
+					// change background on wrong password
+					XSetWindowBackground(dpy, w, red.pixel);
+				}
+
+				// printf("\nXpmReadFileToPixmap: %d\n", retval);
+
+				// Flush to update background
 				XFlush(dpy);
 			}
                     len = 0;
