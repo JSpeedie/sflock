@@ -217,11 +217,11 @@ main(int argc, char **argv) {
 			// image options
 			case 'i': 
 				use_b_image = 1;
-				b_image_loc = atoi(optarg);
+				b_image_loc = optarg;
 				break;
 			case 'e': 
 				use_e_b_image = 1;
-				e_b_image_loc = atoi(optarg);
+				e_b_image_loc = optarg;
 				break;
 		}
 	}
