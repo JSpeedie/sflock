@@ -126,11 +126,19 @@ main(int argc, char **argv) {
 	int show_name = 1;
 	int show_line = 1;
 	int show_password = 1;
+	// element variables
+	int use_line_length = 0;
+	int new_line_length;
+	int line_length;
 	// location variables
 	int use_x = 0; 
 	int new_x = 0;
 	int use_y = 0; 
 	int new_y = 0;
+	int use_x_shift = 0; 
+	int new_x_shift = 0;
+	int use_y_shift = 0; 
+	int new_y_shift = 0;
 	// image variables
 	int use_b_image = 0;
 	char* b_image_loc = "";
@@ -151,6 +159,8 @@ main(int argc, char **argv) {
 		{ "hide-line",		no_argument,		NULL,		'l' },
 		{ "hide-password",	no_argument,		NULL,		'p' },
 		{ "password-only",	no_argument,		NULL,		'o' },
+		// element options
+		{ "line-length",	no_argument,		NULL,		'L' },
 		// help and info options
 		{ "help",		no_argument,		NULL,		'h' },
 		{ "version",		no_argument,		NULL,		'v' },
@@ -170,7 +180,7 @@ main(int argc, char **argv) {
 	// printf("BitmapNoMemory: %d\n", BitmapNoMemory);
 	// printf("BitmapSuccess: %d\n", BitmapSuccess);
 
-	while ((opt = getopt_long(argc, argv, "c:f:nlpohvx:y:X:Y:i:e:", opt_table, NULL)) != -1) { 
+	while ((opt = getopt_long(argc, argv, "c:f:nlpoL:hvx:y:X:Y:i:e:", opt_table, NULL)) != -1) { 
 		switch (opt) {
 			case 'c': passchar = optarg; printf("pass changed to %s\n", passchar); break;
 			case 'f': fontname = optarg; break;
@@ -179,6 +189,11 @@ main(int argc, char **argv) {
 			case 'l': show_line = 0; break;
 			case 'p': show_password = 0; break;
 			case 'o': show_line = 0; show_name = 0; break;
+			// element options
+			case 'L':
+				use_line_length = 1;
+				new_line_length = atoi(optarg);
+				break;
 			// help and info options
 			case 'h': print_help(); break;
 			case 'v': die("sflock-"VERSION", © 2015 Ben Ruijl, JSpeedie\n"); break;
@@ -187,15 +202,26 @@ main(int argc, char **argv) {
 				use_x = 1;
 				new_x = atoi(optarg);
 				break;
-			// case 's' 'a' 'y' still need to be done
+			case 'y': 
+				use_y = 1;
+				new_y = atoi(optarg);
+				break;
+			case 'X': 
+				use_x_shift = 1;
+				new_x_shift = atoi(optarg);
+				break;
+			case 'Y': 
+				use_y_shift = 1;
+				new_y_shift = atoi(optarg);
+				break;
 			// image options
 			case 'i': 
 				use_b_image = 1;
-				b_image_loc = optarg;
+				b_image_loc = atoi(optarg);
 				break;
 			case 'e': 
 				use_e_b_image = 1;
-				e_b_image_loc = optarg;
+				e_b_image_loc = atoi(optarg);
 				break;
 		}
 	}
@@ -317,10 +343,23 @@ main(int argc, char **argv) {
 			XDrawString(dpy, w, gc, ((width - XTextWidth(font, username, strlen(username))) / 2) + xshift, y - ascent - 20, username, strlen(username));
 		}
 
+		// If the user HASN'T set the line to be hidden
 		if (show_line) {
-			XDrawLine(dpy, w, gc, (width * 3 / 8) + xshift, y - ascent - 10, (width * 5 / 8) + xshift, y - ascent - 10);
+			// If the user has set a custom line length.
+			if (use_line_length) line_length = new_line_length;
+			// If the user has NOT set a custom line length, default to a line 5/8ths the size of the screen
+			else line_length = (width * 2 / 8);
+
+			// If the user set a custom x for the line, draw a line from that location.
+			if (use_x) x = new_x;
+			// If the user didn't provide a x, set the x to the default value.
+			else x = (width * 3 / 8);
+
+			// The line is "anchored" at the top left. So the x given is the left x coordinate
+			XDrawLine(dpy, w, gc, x + xshift, y - ascent - 10, x + xshift + line_length, y - ascent - 10);
 		}
 
+		// If the user HASN'T set the password field to be hidden
 		if (show_password) {
 			// Draw password entry on the lock screen
 			XDrawString(dpy, w, gc, (x + xshift), y, passdisp, len);
