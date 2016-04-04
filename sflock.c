@@ -329,18 +329,19 @@ main(int argc, char **argv) {
 
             XClearWindow(dpy, w);
             XTextExtents (font, passdisp, len, &dir, &ascent, &descent, &overall);
-		if (use_x) {
-			x = new_x;
-		}
-		else {
-			x = (width - overall.width) / 2;
-		}
 		
             y = (height + ascent - descent) / 2;
 
+		// If the user HASN'T set the username to be hidden
 		if (show_name) {
+			// If the user set a custom x for the name, draw a name from that location.
+			if (use_x) x = new_x;
+			// If the user didn't provide a x, set the x to the default value.
+			// to do: write comment detailing diff between width and overall.width
+			else x = ((width - XTextWidth(font, username, strlen(username))) / 2);
+
 			// Draw username on the lock screen
-			XDrawString(dpy, w, gc, ((width - XTextWidth(font, username, strlen(username))) / 2) + xshift, y - ascent - 20, username, strlen(username));
+			XDrawString(dpy, w, gc, x + xshift, y - ascent - 20, username, strlen(username));
 		}
 
 		// If the user HASN'T set the line to be hidden
@@ -361,6 +362,12 @@ main(int argc, char **argv) {
 
 		// If the user HASN'T set the password field to be hidden
 		if (show_password) {
+			// If the user set a custom x for the password, draw a password from that location.
+			if (use_x) x = new_x;
+			// If the user didn't provide a x, set the x to the default value.
+			// to do: write comment detailing diff between width and overall.width
+			else x = (width - overall.width) / 2;
+
 			// Draw password entry on the lock screen
 			XDrawString(dpy, w, gc, (x + xshift), y, passdisp, len);
 		}
