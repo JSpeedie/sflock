@@ -29,6 +29,9 @@
 #include <bsd_auth.h>
 #endif
 
+char* wrn_error_bg = \
+	"warning: could not read provided error background image\n";
+
 static void
 die(const char *errstr, ...) {
     va_list ap;
@@ -46,7 +49,8 @@ get_password() { /* only run as root */
     struct passwd *pw;
 
     if(geteuid() != 0)
-        die("sflock: cannot retrieve password entry (make sure to suid sflock)\n");
+        die("sflock: cannot retrieve password entry " \
+			"(make sure to suid sflock)\n");
     pw = getpwuid(getuid());
     endpwent();
     rval =  pw->pw_passwd;
@@ -68,29 +72,36 @@ get_password() { /* only run as root */
 #endif
 
 void print_help() { 
-	die("sflock" \
-		"\n\tusage: [ -c | -f | -n | -l | -p | -o | -h | -v | -x | -s | -a ]" \
+	die("sflock\n\tusage: " \
+		"[ -c | -f | -n | -l | -p | -o | -h | -v | -x | -s | -a ]" \
 		"\n\t[-v] Prints version info." \
-		"\n\t[-c passchars] Takes a string parameter. The provided string/char will be used " \
-		"to represent the characters in the password field. For example, when " \
-		"left unchanged, each character you've entered will be represented by '*'. " \
-		"If you enter 'sflock -c this', the first first character will be shown as 't'. " \
-		"The second character you enter will be shown as 'h' and so on and so forth. " \
-		"The characters ('this') will be repeated once they run out (at 12 characters "
-		"entered, the password field will show 'thisthisth' (provided you haven't hidden the " \
-		"password field). Best used for making it look like your password isn't hidden by " \
-		"entering something like 'sflock -c password1234' or 'sflock -c jfkldhfuhwojnfjkdnja' " \
-		"to confuse anyone looking over your shoulder."
-		"\n\t[-f fontname] Takes one string parameter that represents the font you want to " \
-		"use. Uses X Logical Font Description. I'll try to fix this at a later date " \
-		"cause XLFD is a pain." \
-		"\n\t[--x-shift horizontal shift] Takes one int parameter. Shifts the username, line " \
-		"and password field x pixels to the right (from the center of your display(s)." \
-		"\n\t[--hide-name] sflock will not show your username at the lock " \
-		"screen. Good if your username is stupid ;)" \
-		"\n\t[--hide-line] sflock will not show the line between the " \
-		"username field and the password field." \
-		"\n\t[--password-only] Equivalent to --hide-line --hide-name.\n"); 
+		"\n\t[-c passchars] Takes a string parameter. The provided " \
+		"string/char will be used to represent the characters in " \
+		"the password field. For example, when left unchanged, " \
+		"each character you've entered will be represented by '*'. " \
+		"If you enter 'sflock -c this', the first first character " \
+		"will be shown as 't'. The second character you enter will " \
+		"be shown as 'h' and so on and so forth. The characters " \
+		"('this') will be repeated once they run out (at 12 " \
+		"characters entered, the password field will show " \
+		"'thisthisth' (provided you haven't hidden the password " \
+		"field). Best used for making it look like your password " \
+		"isn't hidden by entering something like 'sflock -c " \
+		"password1234' or 'sflock -c jfkldhfuhwojnfjkdnja' to " \
+		"confuse anyone looking over your shoulder."
+		"\n\t[-f fontname] Takes one string parameter that " \
+		"represents the font you want to use. Uses X Logical Font " \
+		"Description. I'll try to fix this at a later date cause " \
+		"XLFD is a pain." \
+		"\n\t[--x-shift horizontal shift] Takes one int parameter. " \
+		"Shifts the username, line and password field x pixels to " \
+		"the right (from the center of your display(s)." \
+		"\n\t[--hide-name] sflock will not show your username at " \
+		"the lock screen. Good if your username is stupid ;)" \
+		"\n\t[--hide-line] sflock will not show the line between " \
+		"the username field and the password field." \
+		"\n\t[--password-only] Equivalent to " \
+		"--hide-line --hide-name.\n"); 
 }
 
 int
@@ -128,7 +139,7 @@ main(int argc, char **argv) {
 	int show_password = 1;
 	// element variables
 	int use_line_length = 0;
-	int new_line_length;
+	int new_line_length = 100;
 	int line_length;
 	// location variables
 	int use_x = 0; 
@@ -147,31 +158,31 @@ main(int argc, char **argv) {
 
 	int opt;
 	/* still to do:
-		x-coord and x-shift should be for individual part? (password field, line and name?)
-		y-shift isn't implemented either in the while loop or at all
-		a lot of these need proper implementation.
+		x-coord and x-shift should be for individual part? (password field,
+		line and name?) y-shift isn't implemented either in the while loop
+		or at all a lot of these need proper implementation.
 	*/
 	struct option opt_table[] = {
-		{ "password-char",	required_argument,	NULL,		'c' },
-		{ "font-name",		required_argument,	NULL,		'f' },
-		// show/hide element options
-		{ "hide-name",		no_argument,		NULL,		'n' },
-		{ "hide-line",		no_argument,		NULL,		'l' },
-		{ "hide-password",	no_argument,		NULL,		'p' },
-		{ "password-only",	no_argument,		NULL,		'o' },
-		// element options
-		{ "line-length",	no_argument,		NULL,		'L' },
-		// help and info options
-		{ "help",		no_argument,		NULL,		'h' },
-		{ "version",		no_argument,		NULL,		'v' },
-		// location options
-		{ "x-coord",		required_argument,	NULL,		'x' },
-		{ "y-coord",		required_argument,	NULL,		'y' },
-		{ "x-shift",		required_argument,	NULL,		'X' },
-		{ "y-shift",		required_argument,	NULL,		'Y' },
-		// image options
-		{ "background-image",	required_argument,	NULL,		'i' },
-		{ "incorrect-image",	required_argument,	NULL,		'e' },
+		{ "password-char",		required_argument,	NULL,	'c' },
+		{ "font-name",			required_argument,	NULL,	'f' },
+		/* show/hide element options */
+		{ "hide-name",			no_argument,		NULL,	'n' },
+		{ "hide-line",			no_argument,		NULL,	'l' },
+		{ "hide-password",		no_argument,		NULL,	'p' },
+		{ "password-only",		no_argument,		NULL,	'o' },
+		/* element options */
+		{ "line-length",		required_argument,	NULL,	'L' },
+		/* help and info options */
+		{ "help",				no_argument,		NULL,	'h' },
+		{ "version",			no_argument,		NULL,	'v' },
+		/* location options */
+		{ "x-coord",			required_argument,	NULL,	'x' },
+		{ "y-coord",			required_argument,	NULL,	'y' },
+		{ "x-shift",			required_argument,	NULL,	'X' },
+		{ "y-shift",			required_argument,	NULL,	'Y' },
+		/* image options */
+		{ "background-image",	required_argument,	NULL,	'i' },
+		{ "incorrect-image",	required_argument,	NULL,	'e' },
 		{ 0, 0, 0, 0 }
 	};
 
@@ -180,9 +191,10 @@ main(int argc, char **argv) {
 	// printf("BitmapNoMemory: %d\n", BitmapNoMemory);
 	// printf("BitmapSuccess: %d\n", BitmapSuccess);
 
-	while ((opt = getopt_long(argc, argv, "c:f:nlpoL:hvx:y:X:Y:i:e:", opt_table, NULL)) != -1) { 
+	while ((opt = getopt_long(argc, argv, "c:f:nlpoL:hvx:y:X:Y:i:e:", \
+		opt_table, NULL)) != -1) { 
 		switch (opt) {
-			case 'c': passchar = optarg; printf("pass changed to %s\n", passchar); break;
+			case 'c': passchar = optarg; break;
 			case 'f': fontname = optarg; break;
 			// show/hide element options
 			case 'n': show_name = 0; break;
@@ -196,7 +208,10 @@ main(int argc, char **argv) {
 				break;
 			// help and info options
 			case 'h': print_help(); break;
-			case 'v': die("sflock-"VERSION", © 2015 Ben Ruijl, JSpeedie\n"); break;
+			case 'v':
+				die("sflock-"VERSION", © 2015 Ben Ruijl, " \
+				"JSpeedie\n");
+				break;
 			// location options
 			case 'x': 
 				use_x = 1;
@@ -269,8 +284,10 @@ main(int argc, char **argv) {
             0, DefaultDepth(dpy, screen), CopyFromParent,
             DefaultVisual(dpy, screen), CWOverrideRedirect | CWBackPixel, &wa);
 
-    XAllocNamedColor(dpy, DefaultColormap(dpy, screen), "orange red", &red, &dummy);
-    XAllocNamedColor(dpy, DefaultColormap(dpy, screen), "black", &black, &dummy);
+    XAllocNamedColor(dpy, DefaultColormap(dpy, screen), \
+		"orange red", &red, &dummy);
+    XAllocNamedColor(dpy, DefaultColormap(dpy, screen), \
+		"black", &black, &dummy);
     pmap = XCreateBitmapFromData(dpy, w, curs, 8, 8);
     invisible = XCreatePixmapCursor(dpy, pmap, pmap, &black, &black, 0, 0);
     XDefineCursor(dpy, w, invisible);
@@ -286,10 +303,12 @@ main(int argc, char **argv) {
 	if (use_b_image) {
 		Pixmap bg; 
 		// Read user specified .xpm file as a Pixmap to 'p'
-		int retval = XpmReadFileToPixmap (dpy, w, b_image_loc, &bg, NULL, NULL);
+		int retval = XpmReadFileToPixmap (dpy, w, b_image_loc, \
+			&bg, NULL, NULL);
 		// If reading the pixmap was successful
 		if (retval == 0) XSetWindowBackgroundPixmap(dpy, w, bg); 
-		else printf("warning: could not read provided background image\n");
+		else printf("warning: could not read " \
+			"provided background image\n");
 	}
     XSetFont(dpy, gc, font->fid);
     XSetForeground(dpy, gc, XWhitePixel(dpy, screen));
@@ -302,7 +321,8 @@ main(int argc, char **argv) {
     }
     if((running = running && (len > 0))) {
         for(len = 1000; len; len--) {
-            if(XGrabKeyboard(dpy, root, True, GrabModeAsync, GrabModeAsync, CurrentTime)
+            if(XGrabKeyboard(dpy, root, True, GrabModeAsync, \
+			GrabModeAsync, CurrentTime)
                     == GrabSuccess)
                 break;
             usleep(1000);
@@ -328,48 +348,70 @@ main(int argc, char **argv) {
             XCharStruct overall;
 
             XClearWindow(dpy, w);
-            XTextExtents (font, passdisp, len, &dir, &ascent, &descent, &overall);
+            XTextExtents (font, passdisp, len, &dir, &ascent, \
+			&descent, &overall);
 		
             y = (height + ascent - descent) / 2;
 
-		// If the user HASN'T set the username to be hidden
+		/* If the user HASN'T set the username to be hidden */
 		if (show_name) {
-			// If the user set a custom x for the name, draw a name from that location.
+			/*
+			 * If the user set a custom x for the name, draw a name at that
+			 * location. If the user didn't provide a x, set the x to the
+			 * default value.
+			 */
 			if (use_x) x = new_x;
-			// If the user didn't provide a x, set the x to the default value.
-			// to do: write comment detailing diff between width and overall.width
-			else x = ((width - XTextWidth(font, username, strlen(username))) / 2);
+			// to do: write comment detailing diff between
+			// width and overall.width
+			else x = ((width - XTextWidth(font, username, \
+				strlen(username))) / 2);
 
-			// Draw username on the lock screen
-			XDrawString(dpy, w, gc, x + xshift, y - ascent - 20, username, strlen(username));
+			/* Draw username on the lock screen */
+			XDrawString(dpy, w, gc, x + xshift, y - ascent - 20, \
+				username, strlen(username));
 		}
 
 		// If the user HASN'T set the line to be hidden
 		if (show_line) {
-			// If the user has set a custom line length.
+			/*
+			 * If the user has set a custom line length, make the line that
+			 * length. If the user has NOT set a custom line length, default
+			 * to a line 2/8ths the size of the screen.
+			 */
 			if (use_line_length) line_length = new_line_length;
-			// If the user has NOT set a custom line length, default to a line 5/8ths the size of the screen
 			else line_length = (width * 2 / 8);
 
-			// If the user set a custom x for the line, draw a line from that location.
+			/*
+			 * If the user set a custom x for the line, draw a line at that 
+			 * location. If the user didn't provide a x, set the x to the
+			 * default value.
+			 */
 			if (use_x) x = new_x;
-			// If the user didn't provide a x, set the x to the default value.
 			else x = (width * 3 / 8);
 
-			// The line is "anchored" at the top left. So the x given is the left x coordinate
-			XDrawLine(dpy, w, gc, x + xshift, y - ascent - 10, x + xshift + line_length, y - ascent - 10);
+			/*
+			 * The line is "anchored" at the top left. So the x given is the
+			 * left x coordinate.
+			 */
+			XDrawLine(dpy, w, gc, x + xshift, y - ascent - 10, \
+				x + xshift + line_length, y - ascent - 10);
 		}
 
-		// If the user HASN'T set the password field to be hidden
+		/* If the user HASN'T set the password field to be hidden */
 		if (show_password) {
-			// If the user set a custom x for the password, draw a password from that location.
+			/*
+			 * If the user set a custom x for the password, draw a password
+			 * at that location. If the user didn't provide a x, set the x to
+			 * the default value.
+			 */
 			if (use_x) x = new_x;
-			// If the user didn't provide a x, set the x to the default value.
-			// to do: write comment detailing diff between width and overall.width
+			// to do: write comment detailing diff between
+			// width and overall.width
 			else x = (width - overall.width) / 2;
 
 			// Draw password entry on the lock screen
-			XDrawString(dpy, w, gc, (x + xshift), y, passdisp, len);
+			XDrawString(dpy, w, gc, (x + xshift), y, \
+				passdisp, len);
 		}
             update = False;
         }
@@ -398,7 +440,8 @@ main(int argc, char **argv) {
                 case XK_Return:
                     passwd[len] = 0;
 #ifdef HAVE_BSD_AUTH
-                    running = !auth_userokay(getlogin(), NULL, "auth-xlock", passwd);
+                    running = !auth_userokay(getlogin(), NULL, \
+				"auth-xlock", passwd);
 #else
                     running = strcmp(crypt(passwd, pws), pws);
 #endif
@@ -406,17 +449,19 @@ main(int argc, char **argv) {
 				// to do: change these so they aren't static
 				Pixmap p; 
 
-				// printf("XpmOpenFailed: %d\n", XpmOpenFailed);
-				// printf("XpmFileInvalid: %d\n", XpmFileInvalid);
-				// printf("XpmNoMemory: %d\n", XpmNoMemory); 
-
-				// if the user specified an error background image
+				/* If the user specified an error background image */
 				if (use_e_b_image) {
-					// Read user specified .xpm file as a Pixmap to 'p'
-					int retval = XpmReadFileToPixmap (dpy, w, e_b_image_loc, &p, NULL, NULL);
-					// Set the background the user specified image.
+					/*
+					 * Read user specified .xpm file as a Pixmap to 'p'.
+					 * If the file was read successfully, set the background,
+					 * to the user specified image. If the file was not read
+					 * successfully, print a warning message.
+					 */
+					int retval = XpmReadFileToPixmap(dpy, w, e_b_image_loc, \
+						&p, NULL, NULL);
+
 					if (retval == 0) XSetWindowBackgroundPixmap(dpy, w, p); 
-					else printf("warning: could not read provided error background image\n");
+					else printf(wrn_error_bg, " retval: %d\n", retval);
 				}
 				else {
 					// change background on wrong password
@@ -463,7 +508,6 @@ main(int argc, char **argv) {
 
     close(term);
     setuid(getuid()); // drop rights permanently
-
 
     XUngrabPointer(dpy, CurrentTime);
     XFreePixmap(dpy, pmap);
