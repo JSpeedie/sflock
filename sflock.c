@@ -141,15 +141,20 @@ main(int argc, char **argv) {
 	int use_line_length = 0;
 	int new_line_length = 100;
 	int line_length;
-	// location variables
-	int use_x = 0; 
-	int new_x = 0;
-	int use_y = 0; 
-	int new_y = 0;
-	int use_x_shift = 0; 
-	int new_x_shift = 0;
-	int use_y_shift = 0; 
-	int new_y_shift = 0;
+	/* Location variables */
+	// -x and -y variables
+	int use_x = 0, use_y = 0; 
+	int new_x, new_y;
+	// --name-[xy], --line-[xy], --password-[xy] variables
+	int use_name_x = 0, use_name_y = 0;
+	int use_line_x = 0, use_line_y = 0;
+	int use_password_x = 0, use_password_y = 0;
+	int new_name_x, new_name_y;
+	int new_line_x, new_line_y;
+	int new_password_x, new_password_y; 
+	// --x-shift and --y-shift variables
+	int use_x_shift = 0, use_y_shift = 0; 
+	int new_x_shift, new_y_shift;
 	// image variables
 	int use_b_image = 0;
 	char* b_image_loc = "";
@@ -180,6 +185,12 @@ main(int argc, char **argv) {
 		{ "y-coord",			required_argument,	NULL,	'y' },
 		{ "x-shift",			required_argument,	NULL,	'X' },
 		{ "y-shift",			required_argument,	NULL,	'Y' },
+		{ "name-x",				required_argument,	NULL,	'A' },
+		{ "line-x",				required_argument,	NULL,	'B' },
+		{ "password-x",			required_argument,	NULL,	'C' },
+		{ "name-y",				required_argument,	NULL,	'D' },
+		{ "line-y",				required_argument,	NULL,	'E' },
+		{ "password-y",			required_argument,	NULL,	'F' },
 		/* image options */
 		{ "background-image",	required_argument,	NULL,	'i' },
 		{ "incorrect-image",	required_argument,	NULL,	'e' },
@@ -191,8 +202,8 @@ main(int argc, char **argv) {
 	// printf("BitmapNoMemory: %d\n", BitmapNoMemory);
 	// printf("BitmapSuccess: %d\n", BitmapSuccess);
 
-	while ((opt = getopt_long(argc, argv, "c:f:nlpoL:hvx:y:X:Y:i:e:", \
-		opt_table, NULL)) != -1) { 
+	while ((opt = getopt_long(argc, argv, \
+		"c:f:nlpoL:hvx:y:X:Y:A:B:C:D:E:F:i:e:", opt_table, NULL)) != -1) { 
 		switch (opt) {
 			case 'c': passchar = optarg; break;
 			case 'f': fontname = optarg; break;
@@ -204,40 +215,52 @@ main(int argc, char **argv) {
 			// element options
 			case 'L':
 				use_line_length = 1;
-				new_line_length = atoi(optarg);
-				break;
+				new_line_length = atoi(optarg); break;
 			// help and info options
 			case 'h': print_help(); break;
 			case 'v':
 				die("sflock-"VERSION", © 2015 Ben Ruijl, " \
-				"JSpeedie\n");
-				break;
+				"JSpeedie\n"); break;
 			// location options
 			case 'x': 
 				use_x = 1;
-				new_x = atoi(optarg);
-				break;
+				new_x = atoi(optarg); break;
 			case 'y': 
 				use_y = 1;
-				new_y = atoi(optarg);
-				break;
+				new_y = atoi(optarg); break;
 			case 'X': 
 				use_x_shift = 1;
-				new_x_shift = atoi(optarg);
-				break;
+				new_x_shift = atoi(optarg); break;
 			case 'Y': 
 				use_y_shift = 1;
-				new_y_shift = atoi(optarg);
-				break;
+				new_y_shift = atoi(optarg); break;
+			// element x coordinates
+			case 'A': 
+				use_name_x = 1;
+				new_name_x = atoi(optarg); break;
+			case 'B': 
+				use_line_x = 1;
+				new_line_x = atoi(optarg); break;
+			case 'C': 
+				use_password_x = 1;
+				new_password_x = atoi(optarg); break;
+			// element y coordinates
+			case 'D': 
+				use_name_y = 1;
+				new_name_y = atoi(optarg); break;
+			case 'E': 
+				use_line_y = 1;
+				new_line_y = atoi(optarg); break;
+			case 'F': 
+				use_password_y = 1;
+				new_password_y = atoi(optarg); break;
 			// image options
 			case 'i': 
 				use_b_image = 1;
-				b_image_loc = optarg;
-				break;
+				b_image_loc = optarg; break;
 			case 'e': 
 				use_e_b_image = 1;
-				e_b_image_loc = optarg;
-				break;
+				e_b_image_loc = optarg; break;
 		}
 	}
 
@@ -356,15 +379,18 @@ main(int argc, char **argv) {
 		/* If the user HASN'T set the username to be hidden */
 		if (show_name) {
 			/*
-			 * If the user set a custom x for the name, draw a name at that
-			 * location. If the user didn't provide a x, set the x to the
-			 * default value.
+			 * If the user set a custom x, draw a name at that location.
+			 * If the user didn't provide a x, set the x to the default value.
+			 * If the user set the name x, draw the name there.
+			 * The name x overrides other x values.
 			 */
 			if (use_x) x = new_x;
 			// to do: write comment detailing diff between
 			// width and overall.width
 			else x = ((width - XTextWidth(font, username, \
 				strlen(username))) / 2);
+
+			if (use_name_x) x = new_name_x;
 
 			/* Draw username on the lock screen */
 			XDrawString(dpy, w, gc, x + xshift, y - ascent - 20, \
@@ -382,12 +408,15 @@ main(int argc, char **argv) {
 			else line_length = (width * 2 / 8);
 
 			/*
-			 * If the user set a custom x for the line, draw a line at that 
-			 * location. If the user didn't provide a x, set the x to the
-			 * default value.
+			 * If the user set a custom x, draw a line at that location.
+			 * If the user didn't provide a x, set the x to the default value.
+			 * If the user set the line x, draw the line there.
+			 * The line x overrides other x values.
 			 */
 			if (use_x) x = new_x;
 			else x = (width * 3 / 8);
+
+			if (use_line_x) x = new_line_x;
 
 			/*
 			 * The line is "anchored" at the top left. So the x given is the
@@ -400,14 +429,17 @@ main(int argc, char **argv) {
 		/* If the user HASN'T set the password field to be hidden */
 		if (show_password) {
 			/*
-			 * If the user set a custom x for the password, draw a password
-			 * at that location. If the user didn't provide a x, set the x to
-			 * the default value.
+			 * If the user set a custom x, draw a password at that location.
+			 * If the user didn't provide a x, set the x to the default value.
+			 * If the user set the password x, draw the password there.
+			 * The password x overrides other x values.
 			 */
 			if (use_x) x = new_x;
 			// to do: write comment detailing diff between
 			// width and overall.width
 			else x = (width - overall.width) / 2;
+
+			if (use_password_x) x = new_password_x;
 
 			// Draw password entry on the lock screen
 			XDrawString(dpy, w, gc, (x + xshift), y, \
@@ -461,7 +493,7 @@ main(int argc, char **argv) {
 						&p, NULL, NULL);
 
 					if (retval == 0) XSetWindowBackgroundPixmap(dpy, w, p); 
-					else printf(wrn_error_bg, " retval: %d\n", retval);
+					else printf(wrn_error_bg);
 				}
 				else {
 					// change background on wrong password
