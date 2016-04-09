@@ -131,8 +131,6 @@ main(int argc, char **argv) {
     char* passchar = "*";
     char* fontname = "-*-helvetica-bold-r-normal-*-*-120-*-*-*-*-iso8859-1";
     char* username = ""; 
-    // int show_line = 1;
-    int xshift = 0;
 	// show/hide element variables
 	int show_name = 1;
 	int show_line = 1;
@@ -153,8 +151,7 @@ main(int argc, char **argv) {
 	int new_line_x, new_line_y;
 	int new_password_x, new_password_y; 
 	// --x-shift and --y-shift variables
-	int use_x_shift = 0, use_y_shift = 0; 
-	int new_x_shift, new_y_shift;
+	int x_shift, y_shift;
 	// image variables
 	int use_b_image = 0;
 	char* b_image_loc = "";
@@ -228,12 +225,8 @@ main(int argc, char **argv) {
 			case 'y': 
 				use_y = 1;
 				new_y = atoi(optarg); break;
-			case 'X': 
-				use_x_shift = 1;
-				new_x_shift = atoi(optarg); break;
-			case 'Y': 
-				use_y_shift = 1;
-				new_y_shift = atoi(optarg); break;
+			case 'X': x_shift = atoi(optarg); break;
+			case 'Y': y_shift = atoi(optarg); break;
 			// element x coordinates
 			case 'A': 
 				use_name_x = 1;
@@ -367,33 +360,38 @@ main(int argc, char **argv) {
         }
 
         if (update) {
-            int x, y, dir, ascent, descent;
+            int x, y, mid_y, dir, ascent, descent;
             XCharStruct overall;
 
             XClearWindow(dpy, w);
             XTextExtents (font, passdisp, len, &dir, &ascent, \
 			&descent, &overall);
 		
-            y = (height + ascent - descent) / 2;
+            mid_y = (height + ascent - descent) / 2;
 
 		/* If the user HASN'T set the username to be hidden */
 		if (show_name) {
 			/*
-			 * If the user set a custom x, draw a name at that location.
-			 * If the user didn't provide a x, set the x to the default value.
-			 * If the user set the name x, draw the name there.
-			 * The name x overrides other x values.
+			 * If the user set a name x value, use that for the x.
+			 * If the user did not, use the "override" x if it was set.
+			 * If neither were set, use the default value; centered on the
+			 * screen. Same applies for the y, except the default for the y
+			 * is just above the center of the screen.
 			 */
-			if (use_x) x = new_x;
+			if (use_name_x) x = new_name_x;
+			else if (use_x) x = new_x;
 			// to do: write comment detailing diff between
 			// width and overall.width
 			else x = ((width - XTextWidth(font, username, \
 				strlen(username))) / 2);
 
-			if (use_name_x) x = new_name_x;
+			if (use_name_y) y = new_name_y;
+			else if (use_y) y = new_y;
+			else y = mid_y - ascent - 20;
+
 
 			/* Draw username on the lock screen */
-			XDrawString(dpy, w, gc, x + xshift, y - ascent - 20, \
+			XDrawString(dpy, w, gc, x + x_shift, y, \
 				username, strlen(username));
 		}
 
@@ -408,41 +406,50 @@ main(int argc, char **argv) {
 			else line_length = (width * 2 / 8);
 
 			/*
-			 * If the user set a custom x, draw a line at that location.
-			 * If the user didn't provide a x, set the x to the default value.
-			 * If the user set the line x, draw the line there.
-			 * The line x overrides other x values.
+			 * If the user set a line x value, use that for the x.
+			 * If the user did not, use the "override" x if it was set.
+			 * If neither were set, use the default value; centered on the
+			 * screen. Same applies for the y, except the default for the y
+			 * is just above the center of the screen.
 			 */
-			if (use_x) x = new_x;
-			else x = (width * 3 / 8);
-
 			if (use_line_x) x = new_line_x;
+			else if (use_x) x = new_x;
+			else x = (width * 3 / 8); 
+
+			if (use_line_y) y = new_line_y;
+			else if (use_y) y = new_y;
+			else y = mid_y - ascent - 10;
 
 			/*
 			 * The line is "anchored" at the top left. So the x given is the
 			 * left x coordinate.
 			 */
-			XDrawLine(dpy, w, gc, x + xshift, y - ascent - 10, \
-				x + xshift + line_length, y - ascent - 10);
+			XDrawLine(dpy, w, gc, x + x_shift, y, \
+				x + x_shift + line_length, y);
 		}
 
 		/* If the user HASN'T set the password field to be hidden */
 		if (show_password) {
 			/*
-			 * If the user set a custom x, draw a password at that location.
-			 * If the user didn't provide a x, set the x to the default value.
-			 * If the user set the password x, draw the password there.
-			 * The password x overrides other x values.
+			 * If the user set a password x, use that for the x.
+			 * If the user did not, use the "override" x if it was set.
+			 * If neither were set, use the default value; centered on the
+			 * screen. Same applies for the y, except the default for the y
+			 * is just below the center of the screen.
 			 */
-			if (use_x) x = new_x;
+
 			// to do: write comment detailing diff between
-			// width and overall.width
+			// width and overall.width 
+			if (use_password_x) x = new_password_x;
+			else if (use_x) x = new_x;
 			else x = (width - overall.width) / 2;
 
-			if (use_password_x) x = new_password_x;
+			if (use_password_y) y = new_password_y;
+			else if (use_y) y = new_y;
+			else y = mid_y;
 
 			// Draw password entry on the lock screen
-			XDrawString(dpy, w, gc, (x + xshift), y, \
+			XDrawString(dpy, w, gc, (x + x_shift), y, \
 				passdisp, len);
 		}
             update = False;
