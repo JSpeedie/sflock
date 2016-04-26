@@ -15,8 +15,8 @@
 #include <sys/types.h>
 #include <sys/ioctl.h>
 #include <linux/vt.h>
-#include <fcntl.h> 
-#include <errno.h> 
+#include <fcntl.h>
+#include <errno.h>
 #include <termios.h>
 #include <X11/xpm.h>
 #include <X11/keysym.h>
@@ -48,8 +48,8 @@ get_password() { /* only run as root */
     const char *rval;
     struct passwd *pw;
 
-    if(geteuid() != 0)
-        die("sflock: cannot retrieve password entry " \
+	if(geteuid() != 0)
+		die("sflock: cannot retrieve password entry " \
 			"(make sure to suid sflock)\n");
     pw = getpwuid(getuid());
     endpwent();
@@ -71,7 +71,7 @@ get_password() { /* only run as root */
 }
 #endif
 
-void print_help() { 
+void print_help() {
 	die("sflock\n\tusage: " \
 		"[ -c | -f | -n | -l | -p | -o | -h | -v | -x | -s | -a ]" \
 		"\n\t[-v] Prints version info." \
@@ -101,7 +101,7 @@ void print_help() {
 		"\n\t[--hide-line] sflock will not show the line between " \
 		"the username field and the password field." \
 		"\n\t[--password-only] Equivalent to " \
-		"--hide-line --hide-name.\n"); 
+		"--hide-line --hide-name.\n");
 }
 
 int
@@ -124,13 +124,14 @@ main(int argc, char **argv) {
     XEvent ev;
     XSetWindowAttributes wa;
     XFontStruct* font;
-    GC gc; 
+    GC gc;
     XGCValues values;
 
     // defaults
     char* passchar = "*";
-    char* fontname = "-*-helvetica-bold-r-normal-*-*-120-*-*-*-*-iso8859-1";
-    char* username = ""; 
+    char* fontname = "*-helvetica-bold-r-normal-*-*-120-*-*-*-*-iso8859-1";
+    // char* fontname = "-*-tamzen-medium-*-*-*-17-*-*-*-*-*-*-*";
+    char* username = "";
 	// show/hide element variables
 	int show_name = 1;
 	int show_line = 1;
@@ -141,17 +142,17 @@ main(int argc, char **argv) {
 	int line_length;
 	/* Location variables */
 	// -x and -y variables
-	int use_x = 0, use_y = 0; 
-	int new_x, new_y;
+	int use_x = 0, use_y = 0;
+	int new_x = 0, new_y = 0;
 	// --name-[xy], --line-[xy], --password-[xy] variables
 	int use_name_x = 0, use_name_y = 0;
 	int use_line_x = 0, use_line_y = 0;
 	int use_password_x = 0, use_password_y = 0;
-	int new_name_x, new_name_y;
-	int new_line_x, new_line_y;
-	int new_password_x, new_password_y; 
+	int new_name_x = 0, new_name_y = 0;
+	int new_line_x = 0, new_line_y = 0;
+	int new_password_x = 0, new_password_y = 0;
 	// --x-shift and --y-shift variables
-	int x_shift, y_shift;
+	int x_shift = 0, y_shift = 0;
 	// image variables
 	int use_b_image = 0;
 	char* b_image_loc = "";
@@ -200,7 +201,7 @@ main(int argc, char **argv) {
 	// printf("BitmapSuccess: %d\n", BitmapSuccess);
 
 	while ((opt = getopt_long(argc, argv, \
-		"c:f:nlpoL:hvx:y:X:Y:A:B:C:D:E:F:i:e:", opt_table, NULL)) != -1) { 
+		"c:f:nlpoL:hvx:y:X:Y:A:B:C:D:E:F:i:e:", opt_table, NULL)) != -1) {
 		switch (opt) {
 			case 'c': passchar = optarg; break;
 			case 'f': fontname = optarg; break;
@@ -219,46 +220,46 @@ main(int argc, char **argv) {
 				die("sflock-"VERSION", © 2015 Ben Ruijl, " \
 				"JSpeedie\n"); break;
 			// location options
-			case 'x': 
+			case 'x':
 				use_x = 1;
 				new_x = atoi(optarg); break;
-			case 'y': 
+			case 'y':
 				use_y = 1;
 				new_y = atoi(optarg); break;
 			case 'X': x_shift = atoi(optarg); break;
 			case 'Y': y_shift = atoi(optarg); break;
 			// element x coordinates
-			case 'A': 
+			case 'A':
 				use_name_x = 1;
 				new_name_x = atoi(optarg); break;
-			case 'B': 
+			case 'B':
 				use_line_x = 1;
 				new_line_x = atoi(optarg); break;
-			case 'C': 
+			case 'C':
 				use_password_x = 1;
 				new_password_x = atoi(optarg); break;
 			// element y coordinates
-			case 'D': 
+			case 'D':
 				use_name_y = 1;
 				new_name_y = atoi(optarg); break;
-			case 'E': 
+			case 'E':
 				use_line_y = 1;
 				new_line_y = atoi(optarg); break;
-			case 'F': 
+			case 'F':
 				use_password_y = 1;
 				new_password_y = atoi(optarg); break;
 			// image options
-			case 'i': 
+			case 'i':
 				use_b_image = 1;
 				b_image_loc = optarg; break;
-			case 'e': 
+			case 'e':
 				use_e_b_image = 1;
 				e_b_image_loc = optarg; break;
 		}
 	}
 
     // fill with password characters
-    for (int i = 0; i < sizeof passdisp; i+= strlen(passchar)) 
+    for (int i = 0; i < sizeof passdisp; i+= strlen(passchar))
         for (int j = 0; j < strlen(passchar) && i + j < sizeof passdisp; j++)
             passdisp[i + j] = passchar[j];
 
@@ -269,15 +270,15 @@ main(int argc, char **argv) {
     }
 
     if ((ioctl(term, VT_LOCKSWITCH)) == -1) {
-        perror("error locking console"); 
+        perror("error locking console");
     }
 
     /* deamonize */
     pid = fork();
-    if (pid < 0) 
+    if (pid < 0)
         die("Could not fork sflock.");
-    if (pid > 0) 
-        exit(0); // exit parent 
+    if (pid > 0)
+        exit(0); // exit parent
 
 #ifndef HAVE_BSD_AUTH
     pws = get_password();
@@ -317,12 +318,12 @@ main(int argc, char **argv) {
 
     gc = XCreateGC(dpy, w, (unsigned long)0, &values);
 	if (use_b_image) {
-		Pixmap bg; 
+		Pixmap bg;
 		// Read user specified .xpm file as a Pixmap to 'p'
 		int retval = XpmReadFileToPixmap (dpy, w, b_image_loc, \
 			&bg, NULL, NULL);
 		// If reading the pixmap was successful
-		if (retval == 0) XSetWindowBackgroundPixmap(dpy, w, bg); 
+		if (retval == 0) XSetWindowBackgroundPixmap(dpy, w, bg);
 		else printf("warning: could not read " \
 			"provided background image\n");
 	}
@@ -366,7 +367,7 @@ main(int argc, char **argv) {
             XClearWindow(dpy, w);
             XTextExtents (font, passdisp, len, &dir, &ascent, \
 			&descent, &overall);
-		
+
             mid_y = (height + ascent - descent) / 2;
 
 		/* If the user HASN'T set the username to be hidden */
@@ -388,7 +389,6 @@ main(int argc, char **argv) {
 			if (use_name_y) y = new_name_y;
 			else if (use_y) y = new_y;
 			else y = mid_y - ascent - 20;
-
 
 			/* Draw username on the lock screen */
 			XDrawString(dpy, w, gc, x + x_shift, y, \
@@ -414,7 +414,7 @@ main(int argc, char **argv) {
 			 */
 			if (use_line_x) x = new_line_x;
 			else if (use_x) x = new_x;
-			else x = (width * 3 / 8); 
+			else x = (width * 3 / 8);
 
 			if (use_line_y) y = new_line_y;
 			else if (use_y) y = new_y;
@@ -439,7 +439,7 @@ main(int argc, char **argv) {
 			 */
 
 			// to do: write comment detailing diff between
-			// width and overall.width 
+			// width and overall.width
 			if (use_password_x) x = new_password_x;
 			else if (use_x) x = new_x;
 			else x = (width - overall.width) / 2;
@@ -449,7 +449,7 @@ main(int argc, char **argv) {
 			else y = mid_y;
 
 			// Draw password entry on the lock screen
-			XDrawString(dpy, w, gc, (x + x_shift), y, \
+			XDrawString(dpy, w, gc, x + x_shift, y, \
 				passdisp, len);
 		}
             update = False;
@@ -486,7 +486,7 @@ main(int argc, char **argv) {
 #endif
 			if (running != 0) {
 				// to do: change these so they aren't static
-				Pixmap p; 
+				Pixmap p;
 
 				/* If the user specified an error background image */
 				if (use_e_b_image) {
@@ -499,7 +499,7 @@ main(int argc, char **argv) {
 					int retval = XpmReadFileToPixmap(dpy, w, e_b_image_loc, \
 						&p, NULL, NULL);
 
-					if (retval == 0) XSetWindowBackgroundPixmap(dpy, w, p); 
+					if (retval == 0) XSetWindowBackgroundPixmap(dpy, w, p);
 					else printf(wrn_error_bg);
 				}
 				else {
@@ -527,7 +527,7 @@ main(int argc, char **argv) {
                         --len;
                     break;
                 default:
-                    if(num && !iscntrl((int) buf[0]) && (len + num < sizeof passwd)) { 
+                    if(num && !iscntrl((int) buf[0]) && (len + num < sizeof passwd)) {
                         memcpy(passwd + len, buf, num);
                         len += num;
                     }
@@ -542,7 +542,7 @@ main(int argc, char **argv) {
     /* free and unlock */
     setreuid(geteuid(), 0);
     if ((ioctl(term, VT_UNLOCKSWITCH)) == -1) {
-        perror("error unlocking console"); 
+        perror("error unlocking console");
     }
 
     close(term);
