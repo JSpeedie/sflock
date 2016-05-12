@@ -32,6 +32,44 @@
 char* wrn_error_bg = \
 	"warning: could not read provided error background image\n";
 
+/* Variable definitions {{{ */
+char* passchar = "*";
+char* fontname = "*-helvetica-bold-r-normal-*-*-120-*-*-*-*-iso8859-1";
+// char* fontname = "-*-tamzen-medium-*-*-*-17-*-*-*-*-*-*-*";
+char* username;
+// show/hide element variables
+int show_name = 1;
+int show_line = 1;
+int show_password = 1;
+// element variables
+int use_line_length = 0;
+int new_line_length = 100;
+int line_length;
+/* Location variables */
+// -x and -y variables
+int use_x = 0, use_y = 0;
+int new_x = 0, new_y = 0;
+// --name-[xy], --line-[xy], --password-[xy] variables
+int use_name_x = 0, use_name_y = 0;
+int use_line_x = 0, use_line_y = 0;
+int use_password_x = 0, use_password_y = 0;
+int new_name_x = 0, new_name_y = 0;
+int new_line_x = 0, new_line_y = 0;
+int new_password_x = 0, new_password_y = 0;
+char* name_file;
+char name_file_contents[1000];
+int use_name_file = 0;
+// --x-shift and --y-shift variables
+int x_shift = 0, y_shift = 0;
+// image variables
+int use_b_image = 0;
+char* b_image_loc = "";
+int use_e_b_image = 0;
+char* e_b_image_loc = "";
+Pixmap p;
+Pixmap bg;
+/* End of Variable definitions }}} */
+
 static void
 die(const char *errstr, ...) {
     va_list ap;
@@ -70,6 +108,30 @@ get_password() { /* only run as root */
     return rval;
 }
 #endif
+
+void read_file() {
+	/*
+	 * Open file in read only mode, if the file exists, loop through all
+	 * the chars in the file. If the current char is NOT newline char, add it
+	 * to the char array. New lines aren't drawn by the XDraw function used
+	 * to draw the username text.
+	 */
+	int c;
+	FILE *file;
+	file = fopen(name_file, "r");
+	if (file) {
+		int j = 0;
+		// to do: modify this loop and name to not be static (100)
+		while (((c = getc(file)) != EOF) && (j < sizeof(name_file_contents))) {
+			if (c != '\n') {
+				name_file_contents[j] = c;
+			}
+			j += 1;
+		}
+		name_file_contents[j] = '\0';
+		fclose(file);
+	}
+}
 
 void print_help() {
 	die("sflock\n\tusage: " \
@@ -127,37 +189,6 @@ main(int argc, char **argv) {
     GC gc;
     XGCValues values;
 
-    // defaults
-    char* passchar = "*";
-    char* fontname = "*-helvetica-bold-r-normal-*-*-120-*-*-*-*-iso8859-1";
-    // char* fontname = "-*-tamzen-medium-*-*-*-17-*-*-*-*-*-*-*";
-    char* username = "";
-	// show/hide element variables
-	int show_name = 1;
-	int show_line = 1;
-	int show_password = 1;
-	// element variables
-	int use_line_length = 0;
-	int new_line_length = 100;
-	int line_length;
-	/* Location variables */
-	// -x and -y variables
-	int use_x = 0, use_y = 0;
-	int new_x = 0, new_y = 0;
-	// --name-[xy], --line-[xy], --password-[xy] variables
-	int use_name_x = 0, use_name_y = 0;
-	int use_line_x = 0, use_line_y = 0;
-	int use_password_x = 0, use_password_y = 0;
-	int new_name_x = 0, new_name_y = 0;
-	int new_line_x = 0, new_line_y = 0;
-	int new_password_x = 0, new_password_y = 0;
-	// --x-shift and --y-shift variables
-	int x_shift = 0, y_shift = 0;
-	// image variables
-	int use_b_image = 0;
-	char* b_image_loc = "";
-	int use_e_b_image = 0;
-	char* e_b_image_loc = "";
 
 	int opt;
 	/* still to do:
@@ -189,19 +220,15 @@ main(int argc, char **argv) {
 		{ "name-y",				required_argument,	NULL,	'D' },
 		{ "line-y",				required_argument,	NULL,	'E' },
 		{ "password-y",			required_argument,	NULL,	'F' },
+		{ "name-file",			required_argument,	NULL,	'N' },
 		/* image options */
 		{ "background-image",	required_argument,	NULL,	'i' },
 		{ "incorrect-image",	required_argument,	NULL,	'e' },
 		{ 0, 0, 0, 0 }
 	};
 
-	// printf("BitmapOpenFailed: %d\n", BitmapOpenFailed);
-	// printf("BitmapFileInvalid: %d\n", BitmapFileInvalid);
-	// printf("BitmapNoMemory: %d\n", BitmapNoMemory);
-	// printf("BitmapSuccess: %d\n", BitmapSuccess);
-
 	while ((opt = getopt_long(argc, argv, \
-		"c:f:nlpoL:hvx:y:X:Y:A:B:C:D:E:F:i:e:", opt_table, NULL)) != -1) {
+		"c:f:nlpoL:hvx:y:X:Y:A:B:C:D:E:F:N:i:e:", opt_table, NULL)) != -1) {
 		switch (opt) {
 			case 'c': passchar = optarg; break;
 			case 'f': fontname = optarg; break;
@@ -248,6 +275,9 @@ main(int argc, char **argv) {
 			case 'F':
 				use_password_y = 1;
 				new_password_y = atoi(optarg); break;
+			case 'N':
+				use_name_file = 1;
+				name_file = optarg; break;
 			// image options
 			case 'i':
 				use_b_image = 1;
@@ -256,6 +286,11 @@ main(int argc, char **argv) {
 				use_e_b_image = 1;
 				e_b_image_loc = optarg; break;
 		}
+	}
+
+	/* If the user set the -N option, read the file they specified */
+	if (use_name_file) {
+		read_file();
 	}
 
     // fill with password characters
@@ -318,7 +353,6 @@ main(int argc, char **argv) {
 
     gc = XCreateGC(dpy, w, (unsigned long)0, &values);
 	if (use_b_image) {
-		Pixmap bg;
 		// Read user specified .xpm file as a Pixmap to 'p'
 		int retval = XpmReadFileToPixmap (dpy, w, b_image_loc, \
 			&bg, NULL, NULL);
@@ -370,88 +404,102 @@ main(int argc, char **argv) {
 
             mid_y = (height + ascent - descent) / 2;
 
-		/* If the user HASN'T set the username to be hidden */
-		if (show_name) {
-			/*
-			 * If the user set a name x value, use that for the x.
-			 * If the user did not, use the "override" x if it was set.
-			 * If neither were set, use the default value; centered on the
-			 * screen. Same applies for the y, except the default for the y
-			 * is just above the center of the screen.
-			 */
-			if (use_name_x) x = new_name_x;
-			else if (use_x) x = new_x;
-			// to do: write comment detailing diff between
-			// width and overall.width
-			else x = ((width - XTextWidth(font, username, \
-				strlen(username))) / 2);
+			/* If the user HASN'T set the username to be hidden */
+			if (show_name) {
+				/*
+				* If the user set a name x value, use that for the x.
+				* If the user did not, use the "override" x if it was set.
+				* If neither were set, use the default value; centered on the
+				* screen. Same applies for the y, except the default for the y
+				* is just above the center of the screen.
+				*/
+				if (use_name_x) x = new_name_x;
+				else if (use_x) x = new_x;
+				// to do: write comment detailing diff between
+				// width and overall.width
+				else {
+					if (use_name_file) {
+						x = ((width - XTextWidth(font, name_file_contents, \
+							strlen(name_file_contents))) / 2);
+					}
+					else
+						x = ((width - XTextWidth(font, username, \
+							strlen(username))) / 2);
+				}
 
-			if (use_name_y) y = new_name_y;
-			else if (use_y) y = new_y;
-			else y = mid_y - ascent - 20;
+				if (use_name_y) y = new_name_y;
+				else if (use_y) y = new_y;
+				else y = mid_y - ascent - 20;
 
-			/* Draw username on the lock screen */
-			XDrawString(dpy, w, gc, x + x_shift, y, \
-				username, strlen(username));
-		}
+				/* Draw username on the lock screen */
+				if (use_name_file) {
+					XDrawString(dpy, w, gc, x + x_shift, y, \
+						name_file_contents, strlen(name_file_contents));
+				}
+				else {
+					XDrawString(dpy, w, gc, x + x_shift, y, \
+						username, strlen(username));
+				}
 
-		// If the user HASN'T set the line to be hidden
-		if (show_line) {
-			/*
-			 * If the user has set a custom line length, make the line that
-			 * length. If the user has NOT set a custom line length, default
-			 * to a line 2/8ths the size of the screen.
-			 */
-			if (use_line_length) line_length = new_line_length;
-			else line_length = (width * 2 / 8);
+			}
 
-			/*
-			 * If the user set a line x value, use that for the x.
-			 * If the user did not, use the "override" x if it was set.
-			 * If neither were set, use the default value; centered on the
-			 * screen. Same applies for the y, except the default for the y
-			 * is just above the center of the screen.
-			 */
-			if (use_line_x) x = new_line_x;
-			else if (use_x) x = new_x;
-			else x = (width * 3 / 8);
+			// If the user HASN'T set the line to be hidden
+			if (show_line) {
+				/*
+				* If the user has set a custom line length, make the line that
+				* length. If the user has NOT set a custom line length, default
+				* to a line 2/8ths the size of the screen.
+				*/
+				if (use_line_length) line_length = new_line_length;
+				else line_length = (width * 2 / 8);
 
-			if (use_line_y) y = new_line_y;
-			else if (use_y) y = new_y;
-			else y = mid_y - ascent - 10;
+				/*
+				* If the user set a line x value, use that for the x.
+				* If the user did not, use the "override" x if it was set.
+				* If neither were set, use the default value; centered on the
+				* screen. Same applies for the y, except the default for the y
+				* is just above the center of the screen.
+				*/
+				if (use_line_x) x = new_line_x;
+				else if (use_x) x = new_x;
+				else x = (width * 3 / 8);
 
-			/*
-			 * The line is "anchored" at the top left. So the x given is the
-			 * left x coordinate.
-			 */
-			XDrawLine(dpy, w, gc, x + x_shift, y, \
-				x + x_shift + line_length, y);
-		}
+				if (use_line_y) y = new_line_y;
+				else if (use_y) y = new_y;
+				else y = mid_y - ascent - 10;
 
-		/* If the user HASN'T set the password field to be hidden */
-		if (show_password) {
-			/*
-			 * If the user set a password x, use that for the x.
-			 * If the user did not, use the "override" x if it was set.
-			 * If neither were set, use the default value; centered on the
-			 * screen. Same applies for the y, except the default for the y
-			 * is just below the center of the screen.
-			 */
+				/*
+				* The line is "anchored" at the top left. So the x given is the
+				* left x coordinate.
+				*/
+				XDrawLine(dpy, w, gc, x + x_shift, y, \
+					x + x_shift + line_length, y);
+			}
 
-			// to do: write comment detailing diff between
-			// width and overall.width
-			if (use_password_x) x = new_password_x;
-			else if (use_x) x = new_x;
-			else x = (width - overall.width) / 2;
+			/* If the user HASN'T set the password field to be hidden */
+			if (show_password) {
+				/*
+				* If the user set a password x, use that for the x.
+				* If the user did not, use the "override" x if it was set.
+				* If neither were set, use the default value; centered on the
+				* screen. Same applies for the y, except the default for the y
+				* is just below the center of the screen.
+				*/
 
-			if (use_password_y) y = new_password_y;
-			else if (use_y) y = new_y;
-			else y = mid_y;
+				// to do: write comment detailing diff between
+				// width and overall.width
+				if (use_password_x) x = new_password_x;
+				else if (use_x) x = new_x;
+				else x = (width - overall.width) / 2;
 
-			// Draw password entry on the lock screen
-			XDrawString(dpy, w, gc, x + x_shift, y, \
-				passdisp, len);
-		}
+				if (use_password_y) y = new_password_y;
+				else if (use_y) y = new_y;
+				else y = mid_y;
+
+				// Draw password entry on the lock screen
+				XDrawString(dpy, w, gc, x + x_shift, y, \
+					passdisp, len);
+			}
             update = False;
         }
 
@@ -484,34 +532,32 @@ main(int argc, char **argv) {
 #else
                     running = strcmp(crypt(passwd, pws), pws);
 #endif
-			if (running != 0) {
-				// to do: change these so they aren't static
-				Pixmap p;
+					if (running != 0) {
+						// to do: change these so they aren't static
 
-				/* If the user specified an error background image */
-				if (use_e_b_image) {
-					/*
-					 * Read user specified .xpm file as a Pixmap to 'p'.
-					 * If the file was read successfully, set the background,
-					 * to the user specified image. If the file was not read
-					 * successfully, print a warning message.
-					 */
-					int retval = XpmReadFileToPixmap(dpy, w, e_b_image_loc, \
-						&p, NULL, NULL);
+						/* If the user specified an error background image */
+						if (use_e_b_image) {
+							/*
+							* Read user specified .xpm file as a Pixmap to 'p'.
+							* If the file was read successfully, set the background,
+							* to the user specified image. If the file was not read
+							* successfully, print a warning message.
+							*/
+							int retval = XpmReadFileToPixmap(dpy, w, e_b_image_loc, \
+								&p, NULL, NULL);
 
-					if (retval == 0) XSetWindowBackgroundPixmap(dpy, w, p);
-					else printf(wrn_error_bg);
-				}
-				else {
-					// change background on wrong password
-					XSetWindowBackground(dpy, w, red.pixel);
-				}
+							if (retval == 0) XSetWindowBackgroundPixmap(dpy, w, p);
+							else printf(wrn_error_bg);
+						}
+						else {
+							// change background on wrong password
+							XSetWindowBackground(dpy, w, red.pixel);
+						}
 
-				// printf("\nXpmReadFileToPixmap: %d\n", retval);
+						// Flush to update background
+						XFlush(dpy);
+					}
 
-				// Flush to update background
-				XFlush(dpy);
-			}
                     len = 0;
                     break;
                 case XK_Escape:
@@ -550,6 +596,10 @@ main(int argc, char **argv) {
 
     XUngrabPointer(dpy, CurrentTime);
     XFreePixmap(dpy, pmap);
+	if (use_b_image)
+		XFreePixmap(dpy, bg);
+	if (use_e_b_image)
+    	XFreePixmap(dpy, p);
     XFreeFont(dpy, font);
     XFreeGC(dpy, gc);
     XDestroyWindow(dpy, w);
