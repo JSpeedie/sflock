@@ -121,14 +121,15 @@ void read_file() {
 	file = fopen(name_file, "r");
 	if (file) {
 		int j = 0;
-		// to do: modify this loop and name to not be static (100)
 		while (((c = getc(file)) != EOF) && (j < sizeof(name_file_contents))) {
 			if (c != '\n') {
 				name_file_contents[j] = c;
+				printf("c = %c\n", c);
+				j += 1;
 			}
-			j += 1;
 		}
-		name_file_contents[j] = '\0';
+		// name_file_contents[j] = '\0';
+		printf("file contents: %s\n", name_file_contents);
 		fclose(file);
 	}
 }
@@ -533,8 +534,6 @@ main(int argc, char **argv) {
                     running = strcmp(crypt(passwd, pws), pws);
 #endif
 					if (running != 0) {
-						// to do: change these so they aren't static
-
 						/* If the user specified an error background image */
 						if (use_e_b_image) {
 							/*
