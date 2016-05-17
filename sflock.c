@@ -68,7 +68,35 @@ int use_e_b_image = 0;
 char* e_b_image_loc = "";
 Pixmap p;
 Pixmap bg;
+/* main vars */
+
+char curs[] = {0, 0, 0, 0, 0, 0, 0, 0};
+char buf[32], passwd[256], passdisp[256];
+int num, screen, width, height, update, sleepmode, term, pid;
+
+#ifndef HAVE_BSD_AUTH
+    const char *pws;
+#endif
+    unsigned int len;
+    Bool running = True;
+    Cursor invisible;
+    Display *dpy;
+    KeySym ksym;
+    Pixmap pmap;
+    Window root, w;
+    XColor black, red, dummy;
+    XEvent ev;
+    XSetWindowAttributes wa;
+    XFontStruct* font;
+    GC gc;
+    XGCValues values;
+/* update_screen vars */
+
+int x, y, mid_y, dir, ascent, descent;
+XCharStruct overall;
+
 /* End of Variable definitions }}} */
+
 
 static void
 die(const char *errstr, ...) {
@@ -109,10 +137,10 @@ get_password() { /* only run as root */
 }
 #endif
 
-void read_file() {
+void read_file(void) {
 	/*
 	 * Open file in read only mode, if the file exists, loop through all
-	 * the chars in the file. If the current char is NOT newline char, add it
+	 * the chars in the file. If the current char is NOT a newline char, add it
 	 * to the char array. New lines aren't drawn by the XDraw function used
 	 * to draw the username text.
 	 */
@@ -124,17 +152,16 @@ void read_file() {
 		while (((c = getc(file)) != EOF) && (j < sizeof(name_file_contents))) {
 			if (c != '\n') {
 				name_file_contents[j] = c;
-				printf("c = %c\n", c);
 				j += 1;
 			}
 		}
-		// name_file_contents[j] = '\0';
-		printf("file contents: %s\n", name_file_contents);
+		/* Unnecessary on first read, but necessary when "refilling"  array */
+		name_file_contents[j] = '\0';
 		fclose(file);
 	}
 }
 
-void print_help() {
+void print_help(void) {
 	die("sflock\n\tusage: " \
 		"[ -c | -f | -n | -l | -p | -o | -h | -v | -x | -s | -a ]" \
 		"\n\t[-v] Prints version info." \
@@ -167,30 +194,150 @@ void print_help() {
 		"--hide-line --hide-name.\n");
 }
 
+/* Draw helper functions (draw_name, draw_line, draw_password) {{{ */
+void draw_name(void) {
+		/*
+		* If the user set a name x value, use that for the x.
+		* If the user did not, use the "override" x if it was set.
+		* If neither were set, use the default value; centered on the
+		* screen. Same applies for the y, except the default for the y
+		* is just above the center of the screen.
+		*/
+		if (use_name_x) x = new_name_x;
+		else if (use_x) x = new_x;
+		// to do: write comment detailing diff between
+		// width and overall.width
+		else {
+			if (use_name_file) {
+				x = ((width - XTextWidth(font, name_file_contents, \
+					strlen(name_file_contents))) / 2);
+			}
+			else
+				x = ((width - XTextWidth(font, username, \
+					strlen(username))) / 2);
+		}
+
+		if (use_name_y) y = new_name_y;
+		else if (use_y) y = new_y;
+		else y = mid_y - ascent - 20;
+
+		/* Draw username on the lock screen */
+		if (use_name_file) {
+			XDrawString(dpy, w, gc, x + x_shift, y, \
+				name_file_contents, strlen(name_file_contents));
+		}
+		else {
+			XDrawString(dpy, w, gc, x + x_shift, y, \
+				username, strlen(username));
+		}
+}
+
+void draw_line(void) {
+		/*
+		* If the user has set a custom line length, make the line that
+		* length. If the user has NOT set a custom line length, default
+		* to a line 2/8ths the size of the screen.
+		*/
+		if (use_line_length) line_length = new_line_length;
+		else line_length = (width * 2 / 8);
+
+		/*
+		* If the user set a line x value, use that for the x.
+		* If the user did not, use the "override" x if it was set.
+		* If neither were set, use the default value; centered on the
+		* screen. Same applies for the y, except the default for the y
+		* is just above the center of the screen.
+		*/
+		if (use_line_x) x = new_line_x;
+		else if (use_x) x = new_x;
+		else x = (width * 3 / 8);
+
+		if (use_line_y) y = new_line_y;
+		else if (use_y) y = new_y;
+		else y = mid_y - ascent - 10;
+
+		/*
+		* The line is "anchored" at the top left. So the x given is the
+		* left x coordinate.
+		*/
+		XDrawLine(dpy, w, gc, x + x_shift, y, x + x_shift + line_length, y);
+}
+
+void draw_password(void) {
+		/*
+		* If the user set a password x, use that for the x.
+		* If the user did not, use the "override" x if it was set.
+		* If neither were set, use the default value; centered on the
+		* screen. Same applies for the y, except the default for the y
+		* is just below the center of the screen.
+		*/
+
+		// to do: write comment detailing diff between
+		// width and overall.width
+		if (use_password_x) x = new_password_x;
+		else if (use_x) x = new_x;
+		else x = (width - overall.width) / 2;
+
+		if (use_password_y) y = new_password_y;
+		else if (use_y) y = new_y;
+		else y = mid_y;
+
+		// Draw password entry on the lock screen
+		XDrawString(dpy, w, gc, x + x_shift, y, \
+			passdisp, len);
+}
+
+void draw_error_bg(void) {
+	/* If the user specified an error background image */
+	if (use_e_b_image) {
+		/*
+		* Read user specified .xpm file as a Pixmap to 'p'.
+		* If the file was read successfully, set the background,
+		* to the user specified image. If the file was not read
+		* successfully, print a warning message.
+		*/
+		int retval = XpmReadFileToPixmap(dpy, w, e_b_image_loc, \
+			&p, NULL, NULL);
+
+		if (retval == 0) XSetWindowBackgroundPixmap(dpy, w, p);
+		else printf(wrn_error_bg);
+	}
+	else {
+		// change background on wrong password
+		XSetWindowBackground(dpy, w, red.pixel);
+	}
+
+	// Flush to update background
+	XFlush(dpy);
+}
+/* }}} */
+
+void update_screen(void) {
+
+	XClearWindow(dpy, w);
+	XTextExtents (font, passdisp, len, &dir, &ascent, \
+	&descent, &overall);
+
+	mid_y = (height + ascent - descent) / 2;
+
+	/* If the user HASN'T set the username to be hidden */
+	if (show_name) {
+		draw_name();
+	}
+
+	// If the user HASN'T set the line to be hidden
+	if (show_line) {
+		draw_line();
+	}
+
+	/* If the user HASN'T set the password field to be hidden */
+	if (show_password) {
+		draw_password();
+	}
+}
+
 int
 main(int argc, char **argv) {
-    char curs[] = {0, 0, 0, 0, 0, 0, 0, 0};
-    char buf[32], passwd[256], passdisp[256];
-    int num, screen, width, height, update, sleepmode, term, pid;
-
-#ifndef HAVE_BSD_AUTH
-    const char *pws;
-#endif
-    unsigned int len;
-    Bool running = True;
-    Cursor invisible;
-    Display *dpy;
-    KeySym ksym;
-    Pixmap pmap;
-    Window root, w;
-    XColor black, red, dummy;
-    XEvent ev;
-    XSetWindowAttributes wa;
-    XFontStruct* font;
-    GC gc;
-    XGCValues values;
-
-
 	int opt;
 	/* still to do:
 		x-coord and x-shift should be for individual part? (password field,
@@ -365,17 +512,24 @@ main(int argc, char **argv) {
     XSetFont(dpy, gc, font->fid);
     XSetForeground(dpy, gc, XWhitePixel(dpy, screen));
 
+	/* tries to grab the mouse every millisecond? Attempted 1000 times? */
     for(len = 1000; len; len--) {
+		printf("len %d\n", len);
         if(XGrabPointer(dpy, root, False, ButtonPressMask | ButtonReleaseMask | PointerMotionMask,
                     GrabModeAsync, GrabModeAsync, None, invisible, CurrentTime) == GrabSuccess)
             break;
         usleep(1000);
     }
+
+	/* seems to be the same as above. Tries to grab the keyboard every
+	 * millisecond. Tries 1000 times. Difference is that after this loop
+	 * it sets "running" to true only if len > 0 (if the keyboard was grabbed
+	 * within 1000 attempts)
+	 */
     if((running = running && (len > 0))) {
         for(len = 1000; len; len--) {
             if(XGrabKeyboard(dpy, root, True, GrabModeAsync, \
-			GrabModeAsync, CurrentTime)
-                    == GrabSuccess)
+			GrabModeAsync, CurrentTime) == GrabSuccess)
                 break;
             usleep(1000);
         }
@@ -388,200 +542,97 @@ main(int argc, char **argv) {
     sleepmode = False;
 
     /* main event loop */
-    while(running && !XNextEvent(dpy, &ev)) {
-        if (sleepmode) {
-            DPMSEnable(dpy);
-            DPMSForceLevel(dpy, DPMSModeOff);
-            XFlush(dpy);
-        }
+	/* while running != 0 */
+	int thing = 0;
+	/* while the user has not entered the correct password */
+    while (running) {
+		printf("while\n");
 
-        if (update) {
-            int x, y, mid_y, dir, ascent, descent;
-            XCharStruct overall;
+		/* re-read the file in case it's changed */
+		if (use_name_file) read_file();
+		/* Draw the name, line, and password */
+		if (update) update_screen();
 
-            XClearWindow(dpy, w);
-            XTextExtents (font, passdisp, len, &dir, &ascent, \
-			&descent, &overall);
+		// If the user pressed Esc, sleep (screen goes black)
+		if (sleepmode) {
+			printf("sleeping thingy\n");
+			DPMSEnable(dpy);
+			DPMSForceLevel(dpy, DPMSModeOff);
+			XFlush(dpy);
+		}
 
-            mid_y = (height + ascent - descent) / 2;
+		/* If there are more than 0 X events yet to be removed from the queue */
+		if (XPending(dpy) > 0) {
+			printf("XPending triggered :^]\n");
+			/* Set "ev" to have all the XEvent info */
+			XNextEvent(dpy, &ev);
+			// If the mouse was moved, wake up
+			if (ev.type == MotionNotify) sleepmode = False;
 
-			/* If the user HASN'T set the username to be hidden */
-			if (show_name) {
-				/*
-				* If the user set a name x value, use that for the x.
-				* If the user did not, use the "override" x if it was set.
-				* If neither were set, use the default value; centered on the
-				* screen. Same applies for the y, except the default for the y
-				* is just above the center of the screen.
-				*/
-				if (use_name_x) x = new_name_x;
-				else if (use_x) x = new_x;
-				// to do: write comment detailing diff between
-				// width and overall.width
-				else {
-					if (use_name_file) {
-						x = ((width - XTextWidth(font, name_file_contents, \
-							strlen(name_file_contents))) / 2);
-					}
-					else
-						x = ((width - XTextWidth(font, username, \
-							strlen(username))) / 2);
+			if(ev.type == KeyPress) {
+				printf("keypress is keypress\n");
+				sleepmode = False;
+
+				buf[0] = 0;
+				num = XLookupString(&ev.xkey, buf, sizeof buf, &ksym, 0);
+				if(IsKeypadKey(ksym)) {
+					if(ksym == XK_KP_Enter)
+						ksym = XK_Return;
+					else if(ksym >= XK_KP_0 && ksym <= XK_KP_9)
+						ksym = (ksym - XK_KP_0) + XK_0;
+				}
+				if(IsFunctionKey(ksym) || IsKeypadKey(ksym) || IsMiscFunctionKey(ksym) || IsPFKey(ksym) || IsPrivateKeypadKey(ksym)) {
+					printf("jfkldsjkfjdklasjfkljdksjfklj is function\n");
+					continue;
 				}
 
-				if (use_name_y) y = new_name_y;
-				else if (use_y) y = new_y;
-				else y = mid_y - ascent - 20;
-
-				/* Draw username on the lock screen */
-				if (use_name_file) {
-					XDrawString(dpy, w, gc, x + x_shift, y, \
-						name_file_contents, strlen(name_file_contents));
-				}
-				else {
-					XDrawString(dpy, w, gc, x + x_shift, y, \
-						username, strlen(username));
-				}
-
-			}
-
-			// If the user HASN'T set the line to be hidden
-			if (show_line) {
-				/*
-				* If the user has set a custom line length, make the line that
-				* length. If the user has NOT set a custom line length, default
-				* to a line 2/8ths the size of the screen.
-				*/
-				if (use_line_length) line_length = new_line_length;
-				else line_length = (width * 2 / 8);
-
-				/*
-				* If the user set a line x value, use that for the x.
-				* If the user did not, use the "override" x if it was set.
-				* If neither were set, use the default value; centered on the
-				* screen. Same applies for the y, except the default for the y
-				* is just above the center of the screen.
-				*/
-				if (use_line_x) x = new_line_x;
-				else if (use_x) x = new_x;
-				else x = (width * 3 / 8);
-
-				if (use_line_y) y = new_line_y;
-				else if (use_y) y = new_y;
-				else y = mid_y - ascent - 10;
-
-				/*
-				* The line is "anchored" at the top left. So the x given is the
-				* left x coordinate.
-				*/
-				XDrawLine(dpy, w, gc, x + x_shift, y, \
-					x + x_shift + line_length, y);
-			}
-
-			/* If the user HASN'T set the password field to be hidden */
-			if (show_password) {
-				/*
-				* If the user set a password x, use that for the x.
-				* If the user did not, use the "override" x if it was set.
-				* If neither were set, use the default value; centered on the
-				* screen. Same applies for the y, except the default for the y
-				* is just below the center of the screen.
-				*/
-
-				// to do: write comment detailing diff between
-				// width and overall.width
-				if (use_password_x) x = new_password_x;
-				else if (use_x) x = new_x;
-				else x = (width - overall.width) / 2;
-
-				if (use_password_y) y = new_password_y;
-				else if (use_y) y = new_y;
-				else y = mid_y;
-
-				// Draw password entry on the lock screen
-				XDrawString(dpy, w, gc, x + x_shift, y, \
-					passdisp, len);
-			}
-            update = False;
-        }
-
-        if (ev.type == MotionNotify) {
-            sleepmode = False;
-        }
-
-        if(ev.type == KeyPress) {
-            sleepmode = False;
-
-            buf[0] = 0;
-            num = XLookupString(&ev.xkey, buf, sizeof buf, &ksym, 0);
-            if(IsKeypadKey(ksym)) {
-                if(ksym == XK_KP_Enter)
-                    ksym = XK_Return;
-                else if(ksym >= XK_KP_0 && ksym <= XK_KP_9)
-                    ksym = (ksym - XK_KP_0) + XK_0;
-            }
-            if(IsFunctionKey(ksym) || IsKeypadKey(ksym)
-                    || IsMiscFunctionKey(ksym) || IsPFKey(ksym)
-                    || IsPrivateKeypadKey(ksym))
-                continue;
-
-            switch(ksym) {
-                case XK_Return:
-                    passwd[len] = 0;
+				switch(ksym) {
+					case XK_Return:
+						passwd[len] = 0;
 #ifdef HAVE_BSD_AUTH
-                    running = !auth_userokay(getlogin(), NULL, \
-				"auth-xlock", passwd);
+	running = !auth_userokay(getlogin(), NULL, "auth-xlock", passwd);
 #else
-                    running = strcmp(crypt(passwd, pws), pws);
+	running = strcmp(crypt(passwd, pws), pws);
 #endif
-					if (running != 0) {
-						/* If the user specified an error background image */
-						if (use_e_b_image) {
-							/*
-							* Read user specified .xpm file as a Pixmap to 'p'.
-							* If the file was read successfully, set the background,
-							* to the user specified image. If the file was not read
-							* successfully, print a warning message.
-							*/
-							int retval = XpmReadFileToPixmap(dpy, w, e_b_image_loc, \
-								&p, NULL, NULL);
-
-							if (retval == 0) XSetWindowBackgroundPixmap(dpy, w, p);
-							else printf(wrn_error_bg);
+						printf("running after checking pass %d\n", running);
+						// If the password the user entered was incorrect
+						if (running != 0) draw_error_bg();
+						len = 0;
+						break;
+					case XK_Escape:
+						if (DPMSCapable(dpy)) sleepmode = True;
+						len = 0;
+						break;
+					case XK_BackSpace:
+						if(len) --len;
+						break;
+					default:
+						if(num && !iscntrl((int) buf[0]) && (len + num < sizeof passwd)) {
+							memcpy(passwd + len, buf, num);
+							len += num;
 						}
-						else {
-							// change background on wrong password
-							XSetWindowBackground(dpy, w, red.pixel);
-						}
-
-						// Flush to update background
-						XFlush(dpy);
-					}
-
-                    len = 0;
-                    break;
-                case XK_Escape:
-                    len = 0;
-
-                    if (DPMSCapable(dpy)) {
-                        sleepmode = True;
-                    }
-
-                    break;
-                case XK_BackSpace:
-                    if(len)
-                        --len;
-                    break;
-                default:
-                    if(num && !iscntrl((int) buf[0]) && (len + num < sizeof passwd)) {
-                        memcpy(passwd + len, buf, num);
-                        len += num;
-                    }
-
-                    break;
-            }
-
-            update = True; // show changes
-        }
+						break;
+				}
+			}
+			// update = True; // show changes
+		}
+		/*
+		 * If there are no X events to clear, pause very briefly before running
+		 * through the loop again.
+		 * to do: should probably allow the user to set the refresh speed
+		 * in case their system is slow. Maybe add option to not redraw screen
+		 * at all (except on XEvent circa before I forked)
+		 */
+		else {
+			usleep(1000);
+		}
+		// update = True; // show changes
+		printf("\nthing %d\n", thing);
+		thing = thing + 1;
+		// I've locked myself out of my system once by accident and I'm not
+		// letting that happen again. Until I finish my work on the main loop,
+		// this remains
+		if (thing >= 500000) break;
     }
 
     /* free and unlock */
