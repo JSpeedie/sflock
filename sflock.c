@@ -162,36 +162,131 @@ void read_file(void) {
 }
 
 void print_help(void) {
-	die("sflock\n\tusage: " \
-		"[ -c | -f | -n | -l | -p | -o | -h | -v | -x | -s | -a ]" \
-		"\n\t[-v] Prints version info." \
-		"\n\t[-c passchars] Takes a string parameter. The provided " \
-		"string/char will be used to represent the characters in " \
-		"the password field. For example, when left unchanged, " \
+	// c:f:nlpoL:hvx:y:X:Y:A:B:C:D:E:F:N:i:e:
+	printf("sflock\n\tusage: " \
+		"[ -c | -f | -n | -l | -p | -o | -L | -h | -v | -x | -y | -X | -Y | -A | -B | -C | -D | -E | -F | -N | -i | -e | -s | -a ]");
+
+	printf("\n\n\t-c, --password-char passchars\n\t\tTakes a string parameter. " \
+		"The provided string/char will be used to represent the characters " \
+		"in the password field. For example, when not used, " \
 		"each character you've entered will be represented by '*'. " \
-		"If you enter 'sflock -c this', the first first character " \
+		"If you enter 'sflock -c this', the first character " \
 		"will be shown as 't'. The second character you enter will " \
 		"be shown as 'h' and so on and so forth. The characters " \
-		"('this') will be repeated once they run out (at 12 " \
+		"('this') will be repeated once they run out. For example, at 12 " \
 		"characters entered, the password field will show " \
-		"'thisthisth' (provided you haven't hidden the password " \
+		"'thisthisthis' (provided you haven't hidden the password " \
 		"field). Best used for making it look like your password " \
 		"isn't hidden by entering something like 'sflock -c " \
 		"password1234' or 'sflock -c jfkldhfuhwojnfjkdnja' to " \
-		"confuse anyone looking over your shoulder."
-		"\n\t[-f fontname] Takes one string parameter that " \
+		"confuse anyone looking over your shoulder.");
+
+	printf("\n\n\t-f, --font-name fontname\n\t\tTakes one string parameter that " \
 		"represents the font you want to use. Uses X Logical Font " \
-		"Description. I'll try to fix this at a later date cause " \
-		"XLFD is a pain." \
-		"\n\t[--x-shift horizontal shift] Takes one int parameter. " \
+		"Description. I'll try to add XFT support at a later date cause " \
+		"XLFD can be a pain.");
+
+	printf("\n\n\t-n, --hide-name\n\t\tsflock will not show the username field " \
+		"at the lock screen. Good if your username is something stupid ;)");
+
+	printf("\n\n\t-l, --hide-line\n\t\tsflock will not show the line between " \
+		"the username field and the password field.");
+
+	printf("\n\n\t-p, --hide-password\n\t\tsflock will not show the password " \
+		"field at the lock screen. Good if you don't want people to see " \
+		"your terrible wpm :^[");
+
+	printf("\n\n\t-o, --password-only\n\t\tEquivalent to --hide-line " \
+		"--hide-name.");
+
+	printf("\n\n\t-L, --line-length length\n\t\tTakes one int parameter. " \
+		"Sets the horizontal length of the " \
+		"line field at the lock screen in pixels.");
+
+	printf("\n\n\t-h, --help\n\t\tPrints this help output. Tells you what each " \
+		"flag does and what parameters they take.");
+
+	printf("\n\n\t-v, --version\n\t\tPrints version info.");
+
+	printf("\n\n\t-x, --x-coord x_coordinate\n\t\tTakes one int parameter. " \
+		"Sets the 'override' x-value. This will set " \
+		"the x coordinate of all the fields (name, line and password). " \
+		"Useful for left justifying the fields. If you set the individual " \
+		"field's x coordinates, that field will use that x rather than the " \
+		"the one set here. This is to make it easier to set the coordinates" \
+		"of the fields if you want two of them to be the same.");
+
+	printf("\n\n\t-y, --y-coord y_coordinate\n\t\tTakes one int parameter. " \
+		"Sets the 'override' y-value. This will set " \
+		"the y coordinate of all the fields (name, line and password). " \
+		"Useful for getting all elements in a line... If you would ever want " \
+		"that... If you set the individual field's y coordinates, that " \
+		"field will use that y rather than the the one set here. This is " \
+		"to make it easier to set the coordinates of the fields if you " \
+		"want two of them to be the same.");
+
+	printf("\n\n\t-X, --x-shift horizontal_shift\n\t\tTakes one int parameter. " \
 		"Shifts the username, line and password field x pixels to " \
-		"the right (from the center of your display(s)." \
-		"\n\t[--hide-name] sflock will not show your username at " \
-		"the lock screen. Good if your username is stupid ;)" \
-		"\n\t[--hide-line] sflock will not show the line between " \
-		"the username field and the password field." \
-		"\n\t[--password-only] Equivalent to " \
-		"--hide-line --hide-name.\n");
+		"the right (from the x value which is centered by default).");
+
+	printf("\n\n\t-Y, --y-shift vertical_shift\n\t\tTakes one int parameter. " \
+		"Shifts the username, line and password field y pixels " \
+		"upwards (from the y value which is centered by default).");
+
+	printf("\n\n\t-A, --name-x x_coordinate\n\t\tTakes one int parameter. " \
+		"Sets the x coordinate for the name field. Overrides any other flag " \
+		"that sets the name field's x coordinate.");
+
+	printf("\n\n\t-B, --line-x x_coordinate\n\t\tTakes one int parameter. " \
+		"Sets the x coordinate for the line field. Overrides any other flag " \
+		"that sets the line field's x coordinate.");
+
+	printf("\n\n\t-C, --password-x x_coordinate\n\t\tTakes one int parameter. " \
+		"Sets the x coordinate for the password field. Overrides any other " \
+		"flag that sets the password field's x coordinate.");
+
+	printf("\n\n\t-D, --name-y y_coordinate\n\t\tTakes one int parameter. " \
+		"Sets the y coordinate for the name field. Overrides any other " \
+		"flag that sets the name field's y coordinate.");
+
+	printf("\n\n\t-E, --line-y y_coordinate\n\t\tTakes one int parameter. " \
+		"Sets the y coordinate for the line field. Overrides any other " \
+		"flag that sets the line field's y coordinate.");
+
+	printf("\n\n\t-F, --password-y y_coordinate\n\t\tTakes one int parameter. " \
+		"Sets the y coordinate for the password field. Overrides any other " \
+		"flag that sets the password field's y coordinate.");
+
+	printf("\n\n\t-N, --name-file file_path\n\t\tTakes one string parameter " \
+		"in the format of a file path. Reads the contents of the file and " \
+		"outputs it to the username field. The idea behind this is you can " \
+		"write anything to the file and sflock will read it and display it " \
+		"(except \\n. Maybe I'll add that functionality in the future). " \
+		"One idea would be to make a bash script that prints $(date) to a " \
+		"file every second or so and then your lock screen will show the " \
+		"date. Obviously you can do much more advanced things with this " \
+		"cough cough take a look at your lemonbar scripts.");
+
+	printf("\n\n\t-i, --background-image file_path\n\t\tTakes one string " \
+		"parameter in the format of a file path. If the file path leads " \
+		"to an xpm file, the file will be read and the background of " \
+		"the lock screen will be that image. If the image size is smaller " \
+		"than your screen size, the image will be tiled. I plan on adding " \
+		"for other file types in the future.");
+
+	printf("\n\n\t-e, --error-image file_path\n\t\tTakes one string " \
+		"parameter in the format of a file path. If the file path leads " \
+		"to an xpm file, the file will be read. If the user enters the " \
+		"password incorrectly, this image will become the background. " \
+		"Useful for telling if someone tried to login to your system when " \
+		"you were away, or, idk. Telling yourself you're bad every time " \
+		"you mess up your password. If the image size is smaller than your " \
+		"screen size, the image will be tiled. I plan on adding for other " \
+		"file types in the future." \
+		);
+
+	printf("\n");
+	exit(0);
 }
 
 /* Draw helper functions (draw_name, draw_line, draw_password) {{{ */
@@ -312,6 +407,7 @@ void draw_error_bg(void) {
 }
 /* }}} */
 
+// {{{
 void update_screen(void) {
 
 	XClearWindow(dpy, w);
@@ -335,6 +431,7 @@ void update_screen(void) {
 		draw_password();
 	}
 }
+// }}}
 
 int
 main(int argc, char **argv) {
@@ -371,7 +468,7 @@ main(int argc, char **argv) {
 		{ "name-file",			required_argument,	NULL,	'N' },
 		/* image options */
 		{ "background-image",	required_argument,	NULL,	'i' },
-		{ "incorrect-image",	required_argument,	NULL,	'e' },
+		{ "error-image",		required_argument,	NULL,	'e' },
 		{ 0, 0, 0, 0 }
 	};
 
