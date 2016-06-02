@@ -7,6 +7,7 @@ SLOCK_VERSION = 0.9
 
 # paths
 PREFIX = /usr/local
+MANPREFIX = /usr/man
 
 X11INC = /usr/X11R6/include
 X11LIB = /usr/X11R6/lib

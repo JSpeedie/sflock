@@ -45,8 +45,8 @@ install: all
 	@cp -f sflock ${DESTDIR}${PREFIX}/bin
 	@chmod 755 ${DESTDIR}${PREFIX}/bin/sflock
 	@chmod u+s ${DESTDIR}${PREFIX}/bin/sflock
-	@mkdir -p $(DESTDIR)$(MANPREFIX)/man1/
-	@cp -f $(MAN)$(DESTDIR)$(MANPREFIX)/man1/
+	@mkdir -p $(MANPREFIX)/man1/
+	@cp -f $(MAN) $(MANPREFIX)/man1/
 
 uninstall:
 	@echo removing executable file from ${DESTDIR}${PREFIX}/bin
