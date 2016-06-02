@@ -1,5 +1,5 @@
 # sflock - simple feedback screen locker
-# © 2010-2011 Ben Ruijl
+# © 2010-2011 Ben Ruijl, 2016 Julian Speedie
 # Based on sflock
 # © 2006-2007 Anselm R. Garbe, Sander van Dijk
 
@@ -7,6 +7,7 @@ include config.mk
 
 SRC = sflock.c
 OBJ = ${SRC:.c=.o}
+MAN = sflock.1
 
 all: options sflock
 
@@ -44,9 +45,14 @@ install: all
 	@cp -f sflock ${DESTDIR}${PREFIX}/bin
 	@chmod 755 ${DESTDIR}${PREFIX}/bin/sflock
 	@chmod u+s ${DESTDIR}${PREFIX}/bin/sflock
+	@mkdir -p $(DESTDIR)$(MANPREFIX)/man1/
+	@cp -f $(MAN)$(DESTDIR)$(MANPREFIX)/man1/
 
 uninstall:
 	@echo removing executable file from ${DESTDIR}${PREFIX}/bin
 	@rm -f ${DESTDIR}${PREFIX}/bin/sflock
+	@for page in $(MAN); do \
+		rm -f $(DESTDIR)$(MANPREFIX)/man1/$$page; \
+	done
 
 .PHONY: all options clean dist install uninstall
