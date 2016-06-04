@@ -7,7 +7,7 @@ include config.mk
 
 SRC = sflock.c
 OBJ = ${SRC:.c=.o}
-MAN = sflock.1
+MAN = sflock.1.gz
 
 all: options sflock
 
@@ -52,7 +52,7 @@ uninstall:
 	@echo removing executable file from ${DESTDIR}${PREFIX}/bin
 	@rm -f ${DESTDIR}${PREFIX}/bin/sflock
 	@for page in $(MAN); do \
-		rm -f $(DESTDIR)$(MANPREFIX)/man1/$$page; \
+		rm -f $(MANPREFIX)/man1/$$page; \
 	done
 
 .PHONY: all options clean dist install uninstall
