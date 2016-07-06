@@ -1,37 +1,10 @@
-sflock - simple feedback screen locker
-============================ 
-Simple screen locker utility for X, based on
-slock. Provides a very basic user feedback.   
+# wmcontrib
+(soon to be) collection of c programs that I deem required for non-wm X interaction. Meant to be addons to wmutils in a way.
 
-
-Requirements
-------------
-In order to build sflock you need the Xlib header files.
-
-
-Installation
-------------
-Arch Linux users can install this package from the AUR(http://aur.archlinux.org/packages.php?ID=44802).
-
-Manual installation:
-Edit config.mk to match your local setup (sflock is installed into
-the /usr/local namespace by default).
-
-Afterwards enter the following command to build and install sflock
-(if necessary as root):
-
-    make clean install
-
-
-Running sflock
--------------
-
-Simply invoking the sflock command starts the display locker with default
-settings.
-
-Custom settings:
-
--b: toggle the bar.
--f <font description>: modify the font.
--c <password characters>: modify the characters displayed when the user enters his password. This can be a sequence of characters to create a fake password.
-
+Currently the only program is wtfc. This name will most likely be changed 
+(**c**ardinal **w**indow **t**ool, **p**rint **c**ardinal **w**indow. Idk) since
+it's probably most useful for just getting the id of a window in a given cardinal
+direction and using other programs on that window. For example, swapping 2 windows,
+the focused and one in a given cardinal direction. Just an idea. The next program
+will most likely just swap the 2 windows. Can probably be done with a ridiculous
+combination of wmutils programs but I'd rather just have one simple program instead.

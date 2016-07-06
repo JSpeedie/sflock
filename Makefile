@@ -1,18 +1,16 @@
-# sflock - simple feedback screen locker
-# © 2010-2011 Ben Ruijl, 2016 Julian Speedie
-# Based on sflock
-# © 2006-2007 Anselm R. Garbe, Sander van Dijk
+# wtfc - cardinal window focus transferrer
+# © 2016 Julian Speedie
 
 include config.mk
 
-SRC = sflock.c
+SRC = wtfc.c
 OBJ = ${SRC:.c=.o}
-MAN = sflock.1.gz
+MAN = wtfc.1.gz
 
-all: options sflock
+all: options wtfc
 
 options:
-	@echo sflock build options:
+	@echo wtfc build options:
 	@echo "CFLAGS   = ${CFLAGS}"
 	@echo "LDFLAGS  = ${LDFLAGS}"
 	@echo "CC       = ${CC}"
@@ -23,34 +21,34 @@ options:
 
 ${OBJ}: config.mk
 
-sflock: ${OBJ}
+wtfc: ${OBJ}
 	@echo CC -o $@
 	@${CC} -o $@ ${OBJ} ${LDFLAGS}
 
 clean:
 	@echo cleaning
-	@rm -f sflock ${OBJ} sflock-${VERSION}.tar.gz
+	@rm -f wtfc ${OBJ} wtfc-${VERSION}.tar.gz
 
 dist: clean
 	@echo creating dist tarball
-	@mkdir -p sflock-${VERSION}
-	@cp -R LICENSE Makefile README config.mk ${SRC} sflock-${VERSION}
-	@tar -cf sflock-${VERSION}.tar sflock-${VERSION}
-	@gzip sflock-${VERSION}.tar
-	@rm -rf sflock-${VERSION}
+	@mkdir -p wtfc-${VERSION}
+	@cp -R LICENSE Makefile README config.mk ${SRC} wtfc-${VERSION}
+	@tar -cf wtfc-${VERSION}.tar wtfc-${VERSION}
+	@gzip wtfc-${VERSION}.tar
+	@rm -rf wtfc-${VERSION}
 
 install: all
 	@echo installing executable file to ${DESTDIR}${PREFIX}/bin
 	@mkdir -p ${DESTDIR}${PREFIX}/bin
-	@cp -f sflock ${DESTDIR}${PREFIX}/bin
-	@chmod 755 ${DESTDIR}${PREFIX}/bin/sflock
-	@chmod u+s ${DESTDIR}${PREFIX}/bin/sflock
+	@cp -f wtfc ${DESTDIR}${PREFIX}/bin
+	@chmod 755 ${DESTDIR}${PREFIX}/bin/wtfc
+	@chmod u+s ${DESTDIR}${PREFIX}/bin/wtfc
 	@mkdir -p $(MANPREFIX)/man1/
 	@cp -f $(MAN) $(MANPREFIX)/man1/
 
 uninstall:
 	@echo removing executable file from ${DESTDIR}${PREFIX}/bin
-	@rm -f ${DESTDIR}${PREFIX}/bin/sflock
+	@rm -f ${DESTDIR}${PREFIX}/bin/wtfc
 	@for page in $(MAN); do \
 		rm -f $(MANPREFIX)/man1/$$page; \
 	done
